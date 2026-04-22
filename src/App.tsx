@@ -4,11 +4,16 @@
  */
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
+
 import Home from './pages/Home';
 import TourDetails from './pages/TourDetails';
 import TourSearch from './pages/TourSearch';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import OAuth2Callback from './pages/OAuth2Callback';
 import MainLayout from './layouts/MainLayout';
 import UserLayout from './layouts/UserLayout';
 import Dashboard from './pages/Dashboard';
@@ -41,50 +46,63 @@ import Wishlist from './pages/Wishlist';
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/tours" element={<TourSearch />} />
-        <Route path="/tour/:id" element={<TourDetails />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/success" element={<Success />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/contact" element={<ContactUs />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/journal/:id" element={<BlogPost />} />
-        <Route path="/deals" element={<Deals />} />
-        
-        {/* User facing portal features */}
-        <Route element={<UserLayout />}>
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/my-bookings" element={<MyBookings />} />
-          <Route path="/my-bookings/:id" element={<BookingDetails />} />
-        </Route>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/tours" element={<TourSearch />} />
+          <Route path="/tour/:id" element={<TourDetails />} />
+          <Route path="/success" element={<Success />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/journal/:id" element={<BlogPost />} />
+          <Route path="/deals" element={<Deals />} />
 
-        <Route path="/admin" element={<MainLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="tours" element={<ManageTours />} />
-          <Route path="tours/new" element={<AddTour />} />
-          <Route path="tours/edit/:id" element={<AddTour />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="blog" element={<ManageBlog />} />
-          <Route path="blog/new" element={<CreateBlogPost />} />
-          <Route path="blog/edit/:id" element={<EditBlogPost />} />
-          <Route path="customers" element={<ManageCustomers />} />
-          <Route path="customers/:id" element={<CustomerDetails />} />
-          <Route path="orders" element={<ManageOrders />} />
-          <Route path="orders/:id" element={<OrderDetails />} />
-          <Route path="deals" element={<ManageDeals />} />
-          <Route path="deals/new" element={<DealEditor />} />
-          <Route path="deals/edit/:id" element={<DealEditor />} />
-        </Route>
+          {/* Protected: checkout requires auth */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/checkout" element={<Checkout />} />
+          </Route>
 
-        {/* Catch-all route for 404 Not Found directly mapping to our 404 page */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* Protected: user portal */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<UserLayout />}>
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/my-bookings" element={<MyBookings />} />
+              <Route path="/my-bookings/:id" element={<BookingDetails />} />
+            </Route>
+          </Route>
+
+          {/* Admin-only */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="tours" element={<ManageTours />} />
+              <Route path="tours/new" element={<AddTour />} />
+              <Route path="tours/edit/:id" element={<AddTour />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="blog" element={<ManageBlog />} />
+              <Route path="blog/new" element={<CreateBlogPost />} />
+              <Route path="blog/edit/:id" element={<EditBlogPost />} />
+              <Route path="customers" element={<ManageCustomers />} />
+              <Route path="customers/:id" element={<CustomerDetails />} />
+              <Route path="orders" element={<ManageOrders />} />
+              <Route path="orders/:id" element={<OrderDetails />} />
+              <Route path="deals" element={<ManageDeals />} />
+              <Route path="deals/new" element={<DealEditor />} />
+              <Route path="deals/edit/:id" element={<DealEditor />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

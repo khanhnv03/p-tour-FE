@@ -1,5 +1,15 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO, BRAND_FOOTER_DESC } from '../constants';
+
+const TODAY = new Date('2026-04-22');
+
+function getDealStatus(validUntilDate: Date) {
+  const diffDays = Math.ceil((validUntilDate.getTime() - TODAY.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { type: 'expired' as const,  label: 'Đã hết hạn',      badge: 'bg-red-100 text-red-700 border border-red-200' };
+  if (diffDays <= 7) return { type: 'expiring' as const, label: `Còn ${diffDays} ngày`, badge: 'bg-orange-100 text-orange-700 border border-orange-200' };
+  return { type: 'active' as const, label: 'Đang hoạt động', badge: 'bg-emerald-100 text-emerald-700 border border-emerald-200' };
+}
 
 const deals = [
   {
@@ -7,31 +17,47 @@ const deals = [
     title: 'Mùa thu tĩnh lặng giữa Dolomites',
     description: 'Tiết kiệm 20% cho tất cả các hành trình giữa tuần suốt tháng 11. Tìm kiếm sự tĩnh lặng giữa những rừng thông vàng.',
     offer: 'GIẢM 20%',
-    validUntil: '30 Thg 11, 2024',
+    validUntilDate: new Date('2024-11-30'),
+    validUntilLabel: '30 Thg 11, 2024',
+    code: 'AUTUMN24',
+    ctaType: 'code' as const,
     image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBA7z9szD5v1Q2Aq_LKLNlOy3CRK9XSXN0rXpRO7wygKltolDJmcSwDPcfipNat6nU-tcLbDRHzTMNWqLHZk0sNsWJcjwp5ujIdh7YjAX6L67lnNzCdlZ_uef1za35WI8kBLpA2HJ2zZS7SLTh_qxAv4MuGszLBap422Lu1aeNADAQsmjJXwaEAbei6dSJVN9k9bREBnm4r-Nu3V-AEDOu0Lhg2j0TxMVZutTqjHNEqiOE0HMImG5A-Anbpb50TkcygtvOCsdEtyGY',
-    category: 'Theo mùa'
+    category: 'Theo mùa',
   },
   {
     id: 2,
     title: 'Gói Thiền định Kyoto',
     description: 'Tặng kèm lễ trà đạo và quyền vào vườn tư nhân cho tất cả các lượt đặt phòng từ 5 đêm trở lên.',
     offer: 'NÂNG CẤP MIỄN PHÍ',
-    validUntil: '15 Thg 12, 2024',
+    validUntilDate: new Date('2024-12-15'),
+    validUntilLabel: '15 Thg 12, 2024',
+    code: 'KYOTO24',
+    ctaType: 'code' as const,
     image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFtRqeB77oDe1ZkfEvT95wVTTs-GrQ4H-rrl_Fj2wZN2by7rEBif5DdLpB-23tt473yWuJM4doTxJuPjDZieFku6spa4DPDlFBliFE6PY_f-U6XnH3Oo1newmvq8tain52g4Dgvg0qcoboZJNgaMNDNwEDiw0QChvoBXdMGntaClePNpi-xBM1ez0KN9us3dh3vPb3KhPyIGwrBOouqm4MWcJ8EuSxyxjzNL8da8TZ6hQajnPW7vFrvfZe7V9nkJ-6h0hkczZhRUM',
-    category: 'Văn hóa'
+    category: 'Văn hóa',
   },
   {
     id: 3,
-    title: 'Chuyến đi Bắc Cực phút chót',
-    description: 'Bao gồm chuyến săn cực quang tư nhân cho những ngày khởi hành còn lại trong tháng 10.',
-    offer: 'TẶNG $500',
-    validUntil: '31 Thg 10, 2024',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfEy20Xj-X6MAQ2sYkYerHne1fv8d8eiwTsYIpWiEeRgdY8Mz1NcnLEa1zPM5RDR4axkxdHH6Pw8y7DJti7KyuSdSuKWGc7whwqIcuOvRZKYEKn1FJo93eBE448CzMmqQoFHFZMnS26pf551ghGxtLFzHBWREL6yQyPbRhMTD6PgZV4GvG_qgJhny3GzUx40Ak9Jc4doYaUyO35p9hhtjPBuPeqdKCOmb5GzdEg5DHrQip42YLZKWuWbN1Re6VQcmyHrQmdRfe6I4',
-    category: 'Ưu đãi chớp nhoáng'
-  }
+    title: 'Khám phá Vịnh Hạ Long Hè 2026',
+    description: 'Đặt tour Vịnh Hạ Long từ nay đến 30/05/2026 để nhận combo tặng thêm bữa sáng và 1 buổi kayak miễn phí.',
+    offer: 'TẶNG COMBO',
+    validUntilDate: new Date('2026-05-30'),
+    validUntilLabel: '30 Thg 5, 2026',
+    code: 'HALONG26',
+    ctaType: 'auto' as const,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDr2YSLmTIxjlIqFFBTr9Ax3o7r-jZQqGGadVy7btZKID6BoEiCliRYJqm7jRGpoTeTVXPGhgxUubj5GAu3chlf069et29bLeE6E0rU98iKKY30y1eYJk1IIQSYx-1HJ001ABrEQ4q8DrjDFExvyYf5mzOFScBUzpJ3NNuyhiaDh3rDK0SOMl6FIV7UTwjVffKeUirK07Je2SBLfDan5KEkUJSby3EsZpY76TNZZn_V2S9cYygBfvSkT5bUsI6BQKX_byFEbJZMkPQ',
+    category: 'Khuyến mãi hè',
+  },
 ];
 
 export default function Deals() {
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const handleCopy = (code: string) => {
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
   return (
     <div className="bg-surface text-on-surface font-sans selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen flex flex-col">
       {/* TopNavBar */}
@@ -74,40 +100,98 @@ export default function Deals() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Main Deals Loop */}
           <div className="lg:col-span-8 space-y-12">
-            {deals.map((deal) => (
-              <div key={deal.id} className="group relative bg-surface-container-lowest rounded-[2.5rem] overflow-hidden shadow-[0_8px_48px_0_rgba(25,28,29,0.04)] border border-outline-variant/10 flex flex-col md:flex-row items-stretch transition-all hover:shadow-[0_12px_64px_0_rgba(25,28,29,0.1)]">
-                <div className="md:w-1/2 relative h-72 md:h-auto overflow-hidden">
-                  <img 
-                    src={deal.image} 
-                    alt={deal.title} 
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
-                  />
-                  <div className="absolute top-6 left-6">
-                    <span className="bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase text-primary shadow-lg border border-primary/10">
-                      {deal.category}
-                    </span>
-                  </div>
-                </div>
-                <div className="md:w-1/2 p-10 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-3xl font-black tracking-tight text-on-surface mb-4 leading-tight group-hover:text-primary transition-colors">{deal.title}.</h3>
-                    <p className="text-on-surface-variant text-base leading-relaxed mb-8 font-light italic">"{deal.description}"</p>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-outline-variant/10 pt-8">
-                    <div>
-                      <span className="block text-[10px] font-black uppercase tracking-widest text-on-surface-variant mb-1">Quyền lợi</span>
-                      <span className="text-2xl font-black text-secondary tracking-tighter">{deal.offer}</span>
+            {deals.map((deal) => {
+              const status = getDealStatus(deal.validUntilDate);
+              const isExpired = status.type === 'expired';
+
+              return (
+                <div
+                  key={deal.id}
+                  className={`group relative bg-surface-container-lowest rounded-[2.5rem] overflow-hidden shadow-[0_8px_48px_0_rgba(25,28,29,0.04)] border border-outline-variant/10 flex flex-col md:flex-row items-stretch transition-all ${isExpired ? 'opacity-70' : 'hover:shadow-[0_12px_64px_0_rgba(25,28,29,0.1)]'}`}
+                >
+                  {/* Expired overlay */}
+                  {isExpired && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                      <div className="bg-white/80 backdrop-blur-sm px-6 py-2 rounded-2xl border border-red-200 shadow">
+                        <span className="text-red-600 font-black text-sm uppercase tracking-widest">Đã hết hạn</span>
+                      </div>
                     </div>
-                    <Link 
-                      to="/tours" 
-                      className="bg-primary text-on-primary px-6 py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-xl transition-all active:scale-95"
-                    >
-                      Khám phá Ưu đãi
-                    </Link>
+                  )}
+
+                  <div className="md:w-1/2 relative h-72 md:h-auto overflow-hidden">
+                    <img
+                      src={deal.image}
+                      alt={deal.title}
+                      className={`w-full h-full object-cover transition-transform duration-1000 ${isExpired ? 'grayscale' : 'group-hover:scale-110'}`}
+                    />
+                    <div className="absolute top-6 left-6 flex flex-col gap-2">
+                      <span className="bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase text-primary shadow-lg border border-primary/10">
+                        {deal.category}
+                      </span>
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase shadow ${status.badge}`}>
+                        {status.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="md:w-1/2 p-10 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-3xl font-black tracking-tight text-on-surface mb-4 leading-tight group-hover:text-primary transition-colors">{deal.title}.</h3>
+                      <p className="text-on-surface-variant text-base leading-relaxed mb-6 font-light italic">"{deal.description}"</p>
+                      <div className="text-xs text-on-surface-variant flex items-center gap-1 mb-2">
+                        <span className="material-symbols-outlined text-sm">calendar_today</span>
+                        Hết hạn: {deal.validUntilLabel}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-outline-variant/10 pt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase tracking-widest text-on-surface-variant mb-1">Quyền lợi</span>
+                          <span className="text-2xl font-black text-secondary tracking-tighter">{deal.offer}</span>
+                        </div>
+                      </div>
+
+                      {/* CTA based on type */}
+                      {!isExpired && deal.ctaType === 'code' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2.5 rounded-xl border border-outline-variant/20">
+                            <span className="material-symbols-outlined text-sm text-secondary">confirmation_number</span>
+                            <span className="font-mono font-black text-sm text-on-surface tracking-widest flex-1">{deal.code}</span>
+                            <button
+                              onClick={() => handleCopy(deal.code)}
+                              className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-sm">{copiedCode === deal.code ? 'check_circle' : 'content_copy'}</span>
+                              {copiedCode === deal.code ? 'Đã sao chép' : 'Sao chép mã'}
+                            </button>
+                          </div>
+                          <Link
+                            to="/tours"
+                            className="block w-full text-center bg-primary text-on-primary px-6 py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-xl transition-all active:scale-95"
+                          >
+                            Khám phá tour áp dụng
+                          </Link>
+                        </div>
+                      )}
+                      {!isExpired && deal.ctaType === 'auto' && (
+                        <Link
+                          to="/tours"
+                          className="block w-full text-center bg-primary text-on-primary px-6 py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-xl transition-all active:scale-95"
+                        >
+                          Khám phá Ưu đãi · Áp dụng tự động khi đặt
+                        </Link>
+                      )}
+                      {isExpired && (
+                        <div className="text-center py-2">
+                          <span className="text-sm text-on-surface-variant font-medium">Ưu đãi này đã hết hiệu lực.</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Sidebar / Contextual Info */}

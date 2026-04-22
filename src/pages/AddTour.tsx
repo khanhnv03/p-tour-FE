@@ -8,12 +8,15 @@ export default function AddTour() {
   const isEdit = Boolean(id);
 
   const [itinerary, setItinerary] = useState([
-    { id: 1, title: '', content: '', startTime: '08:00', images: [''] },
-    { id: 2, title: '', content: '', startTime: '12:00', images: [] }
+    { id: 1, dayTitle: '', activities: [{ id: 1, time: '08:00', desc: '' }, { id: 2, time: '10:00', desc: '' }], images: [''] },
+    { id: 2, dayTitle: '', activities: [{ id: 3, time: '09:00', desc: '' }], images: [] }
   ]);
 
   const [heroImage, setHeroImage] = useState('');
   const [bentoImages, setBentoImages] = useState(['', '', '', '']);
+  const [tourTitle, setTourTitle] = useState('');
+  const [tourDuration, setTourDuration] = useState('');
+  const [tourPrice, setTourPrice] = useState('');
 
   const updateBentoImage = (index: number, url: string) => {
     const newImages = [...bentoImages];
@@ -53,9 +56,28 @@ export default function AddTour() {
     setInclusions(inclusions.filter(inc => inc.id !== id));
   };
 
+  const addActivityToDay = (dayIndex: number) => {
+    const newItinerary = [...itinerary];
+    newItinerary[dayIndex].activities = [...newItinerary[dayIndex].activities, { id: Date.now(), time: '08:00', desc: '' }];
+    setItinerary(newItinerary);
+  };
+
+  const removeActivityFromDay = (dayIndex: number, actId: number) => {
+    const newItinerary = [...itinerary];
+    newItinerary[dayIndex].activities = newItinerary[dayIndex].activities.filter(a => a.id !== actId);
+    setItinerary(newItinerary);
+  };
+
+  const updateActivity = (dayIndex: number, actId: number, field: 'time' | 'desc', value: string) => {
+    const newItinerary = [...itinerary];
+    const act = newItinerary[dayIndex].activities.find(a => a.id === actId);
+    if (act) (act as Record<string, string>)[field] = value;
+    setItinerary(newItinerary);
+  };
+
   const addDay = () => {
     const newId = Date.now();
-    setItinerary([...itinerary, { id: newId, title: '', content: '', startTime: '08:00', images: [] }]);
+    setItinerary([...itinerary, { id: newId, dayTitle: '', activities: [{ id: newId + 1, time: '08:00', desc: '' }], images: [] }]);
   };
 
   const removeDay = (id: number) => {
@@ -108,18 +130,81 @@ export default function AddTour() {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Tiêu đề Chuyến đi</label>
-                  <input 
-                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 text-on-surface font-bold text-base placeholder:text-slate-400 focus:ring-1 focus:ring-primary/20 transition-all outline-none" 
-                    placeholder="ví dụ: Vịnh Sapphire của Na Uy" 
+                  <input
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 text-on-surface font-bold text-base placeholder:text-slate-400 focus:ring-1 focus:ring-primary/20 transition-all outline-none"
+                    placeholder="ví dụ: Vịnh Sapphire của Na Uy"
                     type="text"
+                    value={tourTitle}
+                    onChange={(e) => setTourTitle(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Mô tả chi tiết</label>
-                  <textarea 
-                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface leading-normal text-sm placeholder:text-slate-400 focus:ring-1 focus:ring-primary/20 transition-all outline-none min-h-[160px] resize-none font-medium" 
-                    placeholder="Mô tả linh hồn của hành trình này..." 
+                  <textarea
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface leading-normal text-sm placeholder:text-slate-400 focus:ring-1 focus:ring-primary/20 transition-all outline-none min-h-[160px] resize-none font-medium"
+                    placeholder="Mô tả linh hồn của hành trình này..."
                   />
+                </div>
+              </div>
+            </section>
+
+            {/* Tour Listing Display Section */}
+            <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
+              <h3 className="text-lg font-black tracking-tight mb-2 flex items-center gap-2 text-on-surface">
+                <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Hiển thị trên danh sách tour
+              </h3>
+              <p className="text-xs text-on-surface-variant mb-6 font-medium">Các trường này quyết định cách tour hiển thị trên trang tìm kiếm và trang chủ.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Nhãn nổi bật (badge)</label>
+                  <select className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary/20 outline-none">
+                    <option value="">Không có nhãn</option>
+                    <option>Bán chạy nhất</option>
+                    <option>Mới</option>
+                    <option>Độc quyền</option>
+                    <option>Phiêu lưu</option>
+                    <option>Khuyến mãi</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Thời gian (hiển thị card)</label>
+                  <input type="text" placeholder="VD: 5 ngày 4 đêm" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" value={tourDuration} onChange={(e) => setTourDuration(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Số khách tối đa</label>
+                  <input type="number" placeholder="VD: 12" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Giá từ (VND)</label>
+                  <input type="number" placeholder="VD: 24000000" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" value={tourPrice} onChange={(e) => setTourPrice(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Giá gốc (để gạch ngang, nếu có)</label>
+                  <input type="number" placeholder="Để trống nếu không có khuyến mãi" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Nhãn giảm giá (VD: -15%)</label>
+                  <input type="text" placeholder="VD: -15%" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Rating hiển thị</label>
+                  <div className="flex gap-2">
+                    <input type="number" step="0.1" min="1" max="5" placeholder="4.9" className="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
+                    <div className="flex items-center gap-1 px-3 bg-surface-container-low rounded-xl text-secondary">
+                      {[1,2,3,4,5].map(s => <span key={s} className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>)}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Tour nổi bật</label>
+                  <label className="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-xl cursor-pointer hover:bg-surface-container-high transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-primary rounded focus:ring-primary" />
+                    <div>
+                      <span className="text-sm font-bold text-on-surface">Hiển thị nổi bật ở trang chủ</span>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">Tour sẽ xuất hiện trong section "Tour nổi bật"</p>
+                    </div>
+                  </label>
                 </div>
               </div>
             </section>
@@ -130,9 +215,9 @@ export default function AddTour() {
                 <div>
                   <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-on-surface">
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                    Cấu hình ảnh Điểm đến (Bento Grid)
+                    Gallery hiển thị ở trang chi tiết tour
                   </h3>
-                  <p className="text-xs text-on-surface-variant mt-1 font-medium">Bố cục 1 ảnh chính lớn bên trái và 4 ảnh phụ nhỏ bên phải.</p>
+                  <p className="text-xs text-on-surface-variant mt-1 font-medium">Bố cục bento: 1 ảnh chính lớn bên trái và 4 ảnh phụ bên phải — đây là gallery hiển thị trên trang công khai.</p>
                 </div>
               </div>
               
@@ -214,50 +299,80 @@ export default function AddTour() {
                   <span className="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
                   Lịch trình chi tiết
                 </h3>
-                <button 
+                <button
                   onClick={addDay}
                   className="flex items-center gap-2 px-6 py-2.5 bg-surface-container-high rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all active:scale-95"
                 >
                   <span className="material-symbols-outlined text-xs">add</span>
-                  Thêm hoạt động
+                  Thêm ngày mới
                 </button>
               </div>
               <div className="space-y-4">
                 {itinerary.map((day, index) => (
                   <div key={day.id} className="p-6 rounded-2xl bg-surface-container-low/40 border-l-4 border-primary group transition-all">
                     <div className="flex gap-6 items-start">
-                      <div className="w-10 h-10 rounded-xl bg-primary text-white font-black text-sm flex items-center justify-center shrink-0">
-                        {index + 1 < 10 ? `0${index + 1}` : index + 1}
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className="w-auto px-3 h-10 rounded-xl bg-primary text-white font-black text-xs flex items-center justify-center whitespace-nowrap">
+                          Ngày {index + 1}
+                        </div>
                       </div>
                       <div className="flex-1 space-y-4">
-                        <div className="flex gap-4">
-                          <input 
-                            className="bg-surface-container-low border-none rounded-lg px-3 py-1.5 text-xs font-bold w-24 focus:ring-1 focus:ring-primary outline-none font-mono" 
-                            type="time"
-                            value={day.startTime}
-                            onChange={(e) => {
-                              const newItinerary = [...itinerary];
-                              newItinerary[index].startTime = e.target.value;
-                              setItinerary(newItinerary);
-                            }}
-                          />
-                          <input 
-                            className="flex-1 bg-transparent border-none text-base font-black tracking-tight p-0 focus:ring-0 placeholder:text-slate-300 transition-all outline-none" 
-                            placeholder="Tiêu đề hoạt động..." 
-                            type="text"
-                          />
-                        </div>
-                        <textarea 
-                          className="w-full bg-transparent border-none p-0 focus:ring-0 text-xs text-on-surface-variant leading-relaxed placeholder:text-slate-300 resize-none font-medium outline-none" 
-                          placeholder="Mô tả chi tiết hoạt động..." 
-                          rows={2}
+                        {/* Day title */}
+                        <input
+                          className="w-full bg-transparent border-none text-base font-black tracking-tight p-0 focus:ring-0 placeholder:text-slate-300 transition-all outline-none"
+                          placeholder="Tóm tắt ngày (VD: Đà Lạt – Khởi hành & Check-in)..."
+                          type="text"
+                          value={day.dayTitle}
+                          onChange={(e) => {
+                            const newItinerary = [...itinerary];
+                            newItinerary[index].dayTitle = e.target.value;
+                            setItinerary(newItinerary);
+                          }}
                         />
-                        
-                        {/* Itinerary Activity Images */}
+
+                        {/* Activities list */}
+                        <div className="space-y-2 border-l-2 border-surface-container-high pl-4 ml-2">
+                          {day.activities.map((act) => (
+                            <div key={act.id} className="flex gap-3 items-center group/act">
+                              <input
+                                className="bg-surface-container-low border-none rounded-lg px-3 py-1.5 text-xs font-bold w-24 focus:ring-1 focus:ring-primary outline-none font-mono"
+                                type="time"
+                                value={act.time}
+                                onChange={(e) => updateActivity(index, act.id, 'time', e.target.value)}
+                              />
+                              <input
+                                className="flex-1 bg-surface-container-low border-none rounded-lg px-3 py-1.5 text-sm focus:ring-1 focus:ring-primary outline-none font-medium"
+                                placeholder="Mô tả hoạt động..."
+                                type="text"
+                                value={act.desc}
+                                onChange={(e) => updateActivity(index, act.id, 'desc', e.target.value)}
+                              />
+                              {day.activities.length > 1 && (
+                                <button
+                                  onClick={() => removeActivityFromDay(index, act.id)}
+                                  className="p-1 text-slate-300 hover:text-error transition-all opacity-0 group-hover/act:opacity-100"
+                                >
+                                  <span className="material-symbols-outlined text-xs">close</span>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add activity button */}
+                        <button
+                          onClick={() => addActivityToDay(index)}
+                          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                        >
+                          <span className="material-symbols-outlined text-xs">add</span>
+                          Thêm hoạt động trong ngày
+                        </button>
+
+                        {/* Day Images */}
                         <div className="pt-4 border-t border-surface-container-low/50">
                           <div className="flex justify-between items-center mb-4">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hình ảnh hoạt động</label>
-                            <button 
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hình ảnh ngày {index + 1}</label>
+                            <button
                               onClick={() => addImageToDay(index)}
                               className="text-[9px] font-black text-primary hover:underline uppercase tracking-widest flex items-center gap-1"
                             >
@@ -265,7 +380,6 @@ export default function AddTour() {
                               Thêm ảnh
                             </button>
                           </div>
-                          
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {day.images && day.images.map((img, imgIdx) => (
                               <div key={imgIdx} className="space-y-2 group/img relative">
@@ -278,16 +392,16 @@ export default function AddTour() {
                                       Chưa có ảnh
                                     </div>
                                   )}
-                                  <button 
+                                  <button
                                     onClick={() => removeImageFromDay(index, imgIdx)}
                                     className="absolute top-1 right-1 w-6 h-6 bg-error/90 text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all scale-75 group-hover/img:scale-100"
                                   >
                                     <span className="material-symbols-outlined text-xs">close</span>
                                   </button>
                                 </div>
-                                <input 
-                                  className="w-full bg-white/50 border-none rounded-lg px-2 py-1.5 text-[10px] focus:ring-1 focus:ring-primary outline-none font-medium" 
-                                  placeholder="Dán URL ảnh vào đây..." 
+                                <input
+                                  className="w-full bg-white/50 border-none rounded-lg px-2 py-1.5 text-[10px] focus:ring-1 focus:ring-primary outline-none font-medium"
+                                  placeholder="Dán URL ảnh vào đây..."
                                   value={img}
                                   onChange={(e) => updateImageUrl(index, imgIdx, e.target.value)}
                                 />
@@ -296,7 +410,7 @@ export default function AddTour() {
                           </div>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => removeDay(day.id)}
                         className="p-1.5 text-slate-300 hover:text-error transition-all opacity-0 group-hover:opacity-100"
                       >
@@ -400,13 +514,15 @@ export default function AddTour() {
                       <th className="px-5 py-3">Khách hàng</th>
                       <th className="px-5 py-3">Đánh giá</th>
                       <th className="px-5 py-3">Nội dung</th>
+                      <th className="px-5 py-3">Trạng thái</th>
                       <th className="px-5 py-3 text-right">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-container-low text-xs">
                     {[
-                      { name: 'Lê Minh Anh', rating: 5, comment: 'Trải nghiệm tuyệt vời...' },
-                      { name: 'David Wilson', rating: 4, comment: 'Magical bay...' }
+                      { name: 'Lê Minh Anh', rating: 5, comment: 'Trải nghiệm tuyệt vời, HDV rất nhiệt tình!', status: 'approved' },
+                      { name: 'David Wilson', rating: 4, comment: 'Magical bay, stunning views and great food.', status: 'pending' },
+                      { name: 'Nguyễn Hà Linh', rating: 5, comment: 'Chuyến đi đáng nhớ nhất trong năm.', status: 'hidden' },
                     ].map((review, i) => (
                       <tr key={i} className="hover:bg-surface-container-low/20 transition-colors">
                         <td className="px-5 py-4 font-bold">{review.name}</td>
@@ -418,10 +534,24 @@ export default function AddTour() {
                           </div>
                         </td>
                         <td className="px-5 py-4 text-on-surface-variant max-w-[150px] truncate">{review.comment}</td>
+                        <td className="px-5 py-4">
+                          {review.status === 'approved' && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Đã hiển thị</span>}
+                          {review.status === 'pending'  && <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest">Đang chờ</span>}
+                          {review.status === 'hidden'   && <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">Đã ẩn</span>}
+                        </td>
                         <td className="px-5 py-4 text-right">
-                          <button className="p-1.5 text-slate-300 hover:text-primary transition-all">
-                            <span className="material-symbols-outlined text-sm">visibility_off</span>
-                          </button>
+                          <div className="flex justify-end gap-1">
+                            {review.status !== 'approved' && (
+                              <button className="p-1.5 text-slate-300 hover:text-emerald-600 transition-all" title="Hiển thị">
+                                <span className="material-symbols-outlined text-sm">visibility</span>
+                              </button>
+                            )}
+                            {review.status !== 'hidden' && (
+                              <button className="p-1.5 text-slate-300 hover:text-primary transition-all" title="Ẩn">
+                                <span className="material-symbols-outlined text-sm">visibility_off</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -477,12 +607,14 @@ export default function AddTour() {
                     <div className="relative z-10">
                       <p className="text-[8px] font-black uppercase tracking-[0.3em] text-blue-200 mb-4 px-1">Xem trước thẻ Tour</p>
                       <div className="aspect-[16/10] rounded-2xl bg-white/5 mb-4 overflow-hidden backdrop-blur-md border border-white/10">
-                        <img src="https://picsum.photos/seed/santorini/800/600" alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                        <img src={heroImage || 'https://picsum.photos/seed/santorini/800/600'} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                       </div>
-                      <h4 className="text-lg font-black tracking-tight leading-tight mb-3">Vịnh Sapphire của Na Uy</h4>
+                      <h4 className="text-lg font-black tracking-tight leading-tight mb-3">
+                        {tourTitle || <span className="opacity-40 italic font-normal text-sm">Tiêu đề tour sẽ hiện ở đây...</span>}
+                      </h4>
                       <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-blue-100/60">
-                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">schedule</span> 12 Ngày</span>
-                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">payments</span> 2.499.000₫</span>
+                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">schedule</span> {tourDuration || '— Ngày'}</span>
+                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">payments</span> {tourPrice ? parseInt(tourPrice).toLocaleString('vi-VN') + '₫' : '—'}</span>
                       </div>
                     </div>
                   </section>

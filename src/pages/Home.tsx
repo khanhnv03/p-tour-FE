@@ -1,7 +1,21 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO, BRAND_FOOTER_DESC } from '../constants';
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [searchDestination, setSearchDestination] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+  const [searchGuests, setSearchGuests] = useState('');
+
+  function handleSearch() {
+    const params = new URLSearchParams();
+    if (searchDestination) params.set('destination', searchDestination);
+    if (searchDate) params.set('date', searchDate);
+    if (searchGuests) params.set('guests', searchGuests);
+    navigate(`/tours?${params.toString()}`);
+  }
+
   return (
     <div className="bg-background text-on-background min-h-screen flex flex-col font-sans">
       {/* TopNavBar */}
@@ -65,6 +79,8 @@ export default function Home() {
                     className="bg-transparent border-none p-0 text-on-surface focus:ring-0 font-medium w-full placeholder:text-surface-dim"
                     placeholder="Bạn muốn đi đâu?"
                     type="text"
+                    value={searchDestination}
+                    onChange={(e) => setSearchDestination(e.target.value)}
                   />
                 </div>
               </div>
@@ -78,6 +94,8 @@ export default function Home() {
                     className="bg-transparent border-none p-0 text-on-surface focus:ring-0 font-medium w-full placeholder:text-surface-dim"
                     placeholder="Thêm ngày"
                     type="text"
+                    value={searchDate}
+                    onChange={(e) => setSearchDate(e.target.value)}
                   />
                 </div>
               </div>
@@ -91,10 +109,12 @@ export default function Home() {
                     className="bg-transparent border-none p-0 text-on-surface focus:ring-0 font-medium w-full placeholder:text-surface-dim"
                     placeholder="Thêm khách"
                     type="text"
+                    value={searchGuests}
+                    onChange={(e) => setSearchGuests(e.target.value)}
                   />
                 </div>
               </div>
-              <button className="primary-gradient text-white px-10 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg transition-shadow">
+              <button onClick={handleSearch} className="primary-gradient text-white px-10 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg transition-shadow">
                 <span className="material-symbols-outlined">search</span>
                 Tìm kiếm
               </button>

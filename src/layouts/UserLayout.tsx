@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Outlet, Link, NavLink } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -90,6 +90,10 @@ export default function UserLayout() {
                         <span className="material-symbols-outlined text-lg">favorite</span>
                         Danh sách yêu thích
                       </Link>
+                      <Link onClick={() => setIsDropdownOpen(false)} to="/checkout" className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                        <span className="material-symbols-outlined text-lg">payments</span>
+                        Thanh toán
+                      </Link>
                     </div>
                     
                     <div className="border-t border-slate-100 pt-2">
@@ -121,22 +125,32 @@ export default function UserLayout() {
           </div>
           
           <nav className="flex-1 space-y-2">
-            <Link className="flex items-center gap-3 bg-primary text-white shadow-lg shadow-primary/20 rounded-2xl px-5 py-3.5 font-bold text-sm" to="/my-bookings">
-              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
-              Chuyến đi của tôi
-            </Link>
-            <Link className="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-5 py-3.5 hover:bg-surface-container-low rounded-2xl transition-all font-bold text-sm" to="#">
-              <span className="material-symbols-outlined text-lg">favorite</span>
-              Danh sách yêu thích
-            </Link>
-            <Link className="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-5 py-3.5 hover:bg-surface-container-low rounded-2xl transition-all font-bold text-sm" to="#">
-              <span className="material-symbols-outlined text-lg">payments</span>
-              Thanh toán
-            </Link>
-            <Link className="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-5 py-3.5 hover:bg-surface-container-low rounded-2xl transition-all font-bold text-sm" to="#">
-              <span className="material-symbols-outlined text-lg">settings</span>
-              Cài đặt
-            </Link>
+            {[
+              { to: '/my-bookings', icon: 'travel_explore', label: 'Chuyến đi của tôi', fill: true },
+              { to: '/profile', icon: 'person', label: 'Hồ sơ cá nhân', fill: false },
+              { to: '/wishlist', icon: 'favorite', label: 'Danh sách yêu thích', fill: false },
+              { to: '/checkout', icon: 'payments', label: 'Thanh toán', fill: false },
+            ].map(({ to, icon, label, fill }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/my-bookings'}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-2xl px-5 py-3.5 font-bold text-sm transition-all ${
+                    isActive
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-surface-container-low'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: (fill || isActive) ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
+                    {label}
+                  </>
+                )}
+              </NavLink>
+            ))}
           </nav>
 
           <div className="space-y-3 pt-4 border-t border-surface-container-low">
@@ -144,7 +158,7 @@ export default function UserLayout() {
               Đặt chuyến đi mới
             </Link>
             <div className="flex justify-between items-center px-2">
-              <Link className="flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors font-bold text-xs" to="#">
+              <Link className="flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors font-bold text-xs" to="/contact">
                 <span className="material-symbols-outlined text-sm">help</span>
                 Trợ giúp
               </Link>

@@ -6,6 +6,7 @@ export default function BookingDetails() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl">
@@ -88,17 +89,27 @@ export default function BookingDetails() {
           <div className="bg-surface-container-lowest p-8 rounded-[2rem] shadow-[0_8px_32px_0_rgba(25,28,29,0.04)] border border-surface-container-low/50">
             <h4 className="font-black text-on-surface mb-4">Tổng hóa đơn</h4>
             <div className="space-y-3 text-sm font-medium mb-6">
-              <div className="flex justify-between text-on-surface-variant"><span>Giá Tour (x2)</span><span>$1,400</span></div>
-              <div className="flex justify-between text-on-surface-variant"><span>Thuế & Phí</span><span>$140</span></div>
-              <div className="flex justify-between text-green-600"><span>Khuyến mãi (EARLYBIRD)</span><span>-$100</span></div>
+              <div className="flex justify-between text-on-surface-variant"><span>Giá tour (x2 khách)</span><span>26,600,000₫</span></div>
+              <div className="flex justify-between text-on-surface-variant"><span>Thuế & Phí (5%)</span><span>1,330,000₫</span></div>
             </div>
             <div className="border-t border-surface-container-high pt-4 flex justify-between items-center">
               <span className="font-bold text-on-surface">Đã thanh toán</span>
-              <span className="text-2xl font-black text-primary">$1,440</span>
+              <span className="text-2xl font-black text-primary">27,930,000₫</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Review Submitted Toast */}
+      {reviewSubmitted && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300">
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          <span className="font-bold text-sm">Đánh giá đã gửi, đang chờ duyệt</span>
+          <button onClick={() => setReviewSubmitted(false)} className="ml-2 hover:opacity-70 transition-opacity">
+            <span className="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Review Modal */}
       {isReviewModalOpen && (
@@ -143,8 +154,8 @@ export default function BookingDetails() {
                 className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-primary/20 outline-none font-medium text-on-surface resize-none"
                 placeholder="HDV rất nhiệt tình và cảnh đẹp tuyệt vời..."
               ></textarea>
-              <button 
-                onClick={() => setIsReviewModalOpen(false)}
+              <button
+                onClick={() => { setIsReviewModalOpen(false); setReviewSubmitted(true); }}
                 className="w-full signature-gradient text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all text-sm"
               >
                 Gửi đánh giá

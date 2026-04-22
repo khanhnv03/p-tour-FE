@@ -1,9 +1,34 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO, BRAND_FOOTER_DESC } from '../constants';
 
+const DURATION_OPTIONS = ['1-3 Ngày', '4-7 Ngày', '8-14 Ngày', 'Trên 14 Ngày'];
+const RESULT_COUNTS: Record<string, number> = {
+  '1-3 Ngày': 3, '4-7 Ngày': 4, '8-14 Ngày': 3, 'Trên 14 Ngày': 2,
+};
+
 export default function TourSearch() {
+  const [searchParams] = useSearchParams();
+  const initialDestination = searchParams.get('destination') || '';
+  const initialDate = searchParams.get('date') || '';
+  const initialGuests = searchParams.get('guests') || '';
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState(initialDestination);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [selectedGuests, setSelectedGuests] = useState(initialGuests);
+  const [selectedSort, setSelectedSort] = useState('Phổ biến');
+
+  const activeFilters: { label: string; onRemove: () => void }[] = [];
+  if (selectedDestination) activeFilters.push({ label: `Điểm đến: ${selectedDestination}`, onRemove: () => setSelectedDestination('') });
+  if (selectedDuration) activeFilters.push({ label: `Thời gian: ${selectedDuration}`, onRemove: () => setSelectedDuration(null) });
+  if (selectedDate) activeFilters.push({ label: `Ngày: ${selectedDate}`, onRemove: () => setSelectedDate('') });
+  if (selectedGuests) activeFilters.push({ label: `Số khách: ${selectedGuests}`, onRemove: () => setSelectedGuests('') });
+
+  const resultCount = selectedDuration ? RESULT_COUNTS[selectedDuration] : 9;
+  const resultLabel = activeFilters.length > 0 ? `${resultCount} kết quả phù hợp` : '9 kết quả tìm thấy';
+
   return (
     <div className="bg-surface font-body text-on-surface min-h-screen flex flex-col">
       {/* TopNavBar */}
@@ -42,7 +67,7 @@ export default function TourSearch() {
               <p className="text-lg text-outline max-w-xl">Hành trình độc bản được thiết kế riêng cho những tâm hồn khao khát sự khác biệt.</p>
             </div>
             <div className="bg-surface-container-low px-6 py-4 rounded-xl flex items-center gap-4 shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">
-              <span className="text-sm font-bold text-primary uppercase tracking-widest">9 kết quả tìm thấy</span>
+              <span className="text-sm font-bold text-primary uppercase tracking-widest">{resultLabel}</span>
             </div>
           </div>
         </header>
@@ -60,11 +85,15 @@ export default function TourSearch() {
               <div className="mb-8">
                 <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Điểm đến</label>
                 <div className="relative">
-                  <select className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 appearance-none focus:ring-2 focus:ring-primary/20 transition-all outline-none">
-                    <option>Tất cả điểm đến</option>
-                    <option>Châu Âu</option>
-                    <option>Châu Á</option>
-                    <option>Châu Mỹ</option>
+                  <select
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 appearance-none focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                    value={selectedDestination}
+                    onChange={(e) => setSelectedDestination(e.target.value)}
+                  >
+                    <option value="">Tất cả điểm đến</option>
+                    <option value="Châu Âu">Châu Âu</option>
+                    <option value="Châu Á">Châu Á</option>
+                    <option value="Châu Mỹ">Châu Mỹ</option>
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-3 text-outline pointer-events-none">expand_more</span>
                 </div>
@@ -84,10 +113,19 @@ export default function TourSearch() {
               <div className="mb-8">
                 <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Thời gian</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-primary text-primary bg-primary-fixed/30">1-3 Ngày</button>
-                  <button className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-transparent bg-surface-container-high text-outline hover:border-outline-variant transition-all">4-7 Ngày</button>
-                  <button className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-transparent bg-surface-container-high text-outline hover:border-outline-variant transition-all">8-14 Ngày</button>
-                  <button className="px-3 py-2 text-xs font-bold rounded-lg border-2 border-transparent bg-surface-container-high text-outline hover:border-outline-variant transition-all">Trên 14 Ngày</button>
+                  {DURATION_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setSelectedDuration(selectedDuration === opt ? null : opt)}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg border-2 transition-all ${
+                        selectedDuration === opt
+                          ? 'border-primary text-primary bg-primary/10'
+                          : 'border-transparent bg-surface-container-high text-outline hover:border-outline-variant'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -129,9 +167,15 @@ export default function TourSearch() {
               <div className="flex items-center gap-6">
                 <span className="text-sm font-bold text-outline uppercase tracking-widest">Sắp xếp:</span>
                 <div className="flex gap-4">
-                  <button className="text-sm font-bold text-primary border-b-2 border-primary">Phổ biến</button>
-                  <button className="text-sm font-semibold text-outline hover:text-on-surface transition-colors">Giá thấp</button>
-                  <button className="text-sm font-semibold text-outline hover:text-on-surface transition-colors">Xếp hạng cao</button>
+                  {['Phổ biến', 'Giá thấp', 'Xếp hạng cao'].map((sort) => (
+                    <button
+                      key={sort}
+                      onClick={() => setSelectedSort(sort)}
+                      className={`text-sm transition-colors ${selectedSort === sort ? 'font-bold text-primary border-b-2 border-primary' : 'font-semibold text-outline hover:text-on-surface'}`}
+                    >
+                      {sort}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -150,8 +194,29 @@ export default function TourSearch() {
               </div>
             </div>
 
+            {/* Active Filter Chips */}
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="text-xs font-bold text-outline uppercase tracking-widest">Đang lọc:</span>
+                {activeFilters.map((f) => (
+                  <span key={f.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/20">
+                    {f.label}
+                    <button onClick={f.onRemove} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors">
+                      <span className="material-symbols-outlined text-[14px] leading-none">close</span>
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={() => { setSelectedDuration(null); setSelectedDestination(''); setSelectedDate(''); setSelectedGuests(''); }}
+                  className="text-xs font-bold text-outline hover:text-on-surface underline underline-offset-2 transition-colors"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+            )}
+
             {/* Content Display */}
-            <div className={viewMode === 'grid' 
+            <div className={viewMode === 'grid'
               ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" 
               : "flex flex-col gap-8"
             }>

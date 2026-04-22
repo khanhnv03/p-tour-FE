@@ -1,6 +1,15 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 
 const customers = [
+  {
+    id: '#CUST-0001',
+    name: 'Alex PTIT',
+    email: 'alex@ptittour.com',
+    phone: '+84 912 345 678',
+    bookings: 3,
+    status: 'Đang hoạt động',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAuWdojTWLkOZJO7QnZk1Wu_ZBDHhV69mkUS6E1dOq1thfZ2NUGn0cSdWeZ1FuvzSn72heapjOVtZayQZJBBvU4ZfphklLyJCbiZr52vPnEylMd1LVco5vhVXoG9dHED-jLAVTUoKFq-KiV-X05kV55feDmDV_6kBrXStV8VHtrvmnGAinvdD93a7x864zUNI0kOz00y-Z4KfdaqBl4vaFUmcotTZAopEvZ2xXBBbmJalX3FAmhye-kD0t4FHeAWyYs6as61ZOXwas'
+  },
   {
     id: '#CUST-9042',
     name: 'Julian Thorne',
@@ -147,9 +156,9 @@ export default function ManageCustomers() {
                   </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-20 group-hover:opacity-100 transition-all">
-                      <button className="p-2.5 hover:bg-primary/10 text-primary rounded-xl transition-all" title="Xem chi tiết">
+                      <Link to={`/admin/customers/${customer.id}`} className="p-2.5 hover:bg-primary/10 text-primary rounded-xl transition-all flex items-center" title="Xem chi tiết">
                         <span className="material-symbols-outlined text-xl">visibility</span>
-                      </button>
+                      </Link>
                       <button className="p-2.5 hover:bg-surface-container-high text-on-surface-variant rounded-xl transition-all" title="Chỉnh sửa">
                         <span className="material-symbols-outlined text-xl">edit</span>
                       </button>

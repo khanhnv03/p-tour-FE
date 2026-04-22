@@ -10,8 +10,8 @@ export default function OrderDetails() {
             <span className="material-symbols-outlined text-on-surface">arrow_back</span>
           </Link>
           <div className="flex flex-col">
-            <h2 className="text-2xl font-black tracking-tighter text-blue-900 dark:text-blue-50">Đơn hàng #VA-88291</h2>
-            <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">Ngày đặt: 24 thg 10, 2024</span>
+            <h2 className="text-2xl font-black tracking-tighter text-blue-900 dark:text-blue-50">Đơn hàng #BK-1934</h2>
+            <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">Ngày đặt: 12 Thg 11, 2026</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -40,23 +40,27 @@ export default function OrderDetails() {
             </div>
             <div className="flex flex-col md:flex-row gap-6">
               <div className="w-full md:w-48 h-32 rounded-xl overflow-hidden flex-shrink-0">
-                <img 
-                    className="w-full h-full object-cover" 
-                    alt="Bora Bora Overwater Escape" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqfFYjOrIJWim_rirsv7nzUAQvCrYvhv8heeEWkXgtuRsAjCzCVhlYEz3Zv_ej_6RRHp-XQXpNzyxn5Is47EHb0xvyLHqOY8NBtpq2tts75_VYH2ZG152VsMmf30F9Fna7c5iArm0YBKitADkXHGAEQWfKaFyLXwX4TtuvjipeHk7hT1otNr2EAAzT2HzYWVOql-Jldmu4BhfgLv64k9khNaPKUIRe9hn94D_HwxBYZoXn1iqESY2ui86tpZQ4Zt7iEq-QtQSNPNg" 
+                <img
+                    className="w-full h-full object-cover"
+                    alt="Bình minh trên đỉnh Langbiang"
+                    src="https://picsum.photos/seed/tour1/400/300"
                 />
               </div>
               <div className="flex-1 space-y-2">
-                <h4 className="text-xl font-bold text-blue-900">Bora Bora Overwater Escape</h4>
-                <p className="text-on-surface-variant text-sm leading-relaxed max-w-md">7 Nights luxury stay at The PTIT Resort with private guided lagoon excursions and sunset dining experiences.</p>
+                <h4 className="text-xl font-bold text-blue-900">Bình minh trên đỉnh Langbiang</h4>
+                <p className="text-on-surface-variant text-sm leading-relaxed max-w-md">5 ngày 4 đêm chinh phục đỉnh Langbiang huyền thoại, lưu trú Swiss-Belresort Tuyen Lam và trải nghiệm ẩm thực vùng cao.</p>
                 <div className="flex flex-wrap gap-4 pt-2">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-slate-400">calendar_today</span>
-                    <span className="text-sm font-semibold">Dec 12 - Dec 19, 2024</span>
+                    <span className="text-sm font-semibold">12 Thg 11, 2026</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-slate-400">group</span>
-                    <span className="text-sm font-semibold">2 Adults, 1 Child</span>
+                    <span className="text-sm font-semibold">2 Người lớn</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-slate-400">location_on</span>
+                    <span className="text-sm font-semibold">Lâm Đồng, VN</span>
                   </div>
                 </div>
               </div>
@@ -72,25 +76,25 @@ export default function OrderDetails() {
               </h3>
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
-                  SC
+                  AP
                 </div>
                 <div>
-                  <p className="font-bold text-on-surface">Sarah Cunningham</p>
-                  <p className="text-xs text-on-surface-variant">Gia nhập từ năm 2021</p>
+                  <p className="font-bold text-on-surface">Alex PTIT</p>
+                  <p className="text-xs text-on-surface-variant">Gia nhập từ năm 2024</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between border-b border-surface-container pb-2">
                   <span className="text-sm text-on-surface-variant">Email</span>
-                  <span className="text-sm font-semibold">sarah.c@ptittour.com</span>
+                  <span className="text-sm font-semibold">alex@ptittour.com</span>
                 </div>
                 <div className="flex justify-between border-b border-surface-container pb-2">
-                  <span className="text-sm text-on-surface-variant">Số điện thọai</span>
-                  <span className="text-sm font-semibold">+1 (555) 012-3456</span>
+                  <span className="text-sm text-on-surface-variant">Số điện thoại</span>
+                  <span className="text-sm font-semibold">+84 912 345 678</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-on-surface-variant">Địa chỉ</span>
-                  <span className="text-sm font-semibold">London, UK</span>
+                  <span className="text-sm font-semibold">Hà Nội, Việt Nam</span>
                 </div>
               </div>
             </section>
@@ -103,7 +107,7 @@ export default function OrderDetails() {
               </h3>
               <div className="mb-6 p-4 rounded-xl bg-surface-container-low">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng tiền</p>
-                <p className="text-3xl font-black text-blue-900">12.450.000₫</p>
+                <p className="text-3xl font-black text-blue-900">27.930.000₫</p>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between">
@@ -153,7 +157,7 @@ export default function OrderDetails() {
                   <h4 className="font-bold text-on-surface">Đã nhận đơn đặt chỗ</h4>
                   <span className="text-xs font-medium text-on-surface-variant">24 thg 10, 2024 • 14:15 PM</span>
                 </div>
-                <p className="text-sm text-on-surface-variant mt-1">Khách hàng hoàn tất thanh toán cho 'Bora Bora Overwater Escape'.</p>
+                <p className="text-sm text-on-surface-variant mt-1">Khách hàng hoàn tất thanh toán cho 'Bình minh trên đỉnh Langbiang'.</p>
               </div>
 
               <div className="relative pl-10">

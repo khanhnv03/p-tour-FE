@@ -1,35 +1,66 @@
-import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+
+const TODAY = new Date('2026-04-22');
+
+function getDealStatus(validUntilDate: Date) {
+  const diffDays = Math.ceil((validUntilDate.getTime() - TODAY.getTime()) / 86400000);
+  if (diffDays < 0) return { type: 'expired', label: 'Đã hết hạn', bg: 'bg-slate-100', text: 'text-slate-500' };
+  if (diffDays <= 7) return { type: 'expiring', label: 'Sắp hết hạn', bg: 'bg-amber-100', text: 'text-amber-700' };
+  return { type: 'active', label: 'Đang hoạt động', bg: 'bg-emerald-100', text: 'text-emerald-700' };
+}
 
 const DEALS = [
   {
     id: 1,
-    title: 'Mùa thu tĩnh lặng giữa Dolomites',
+    title: 'Khám phá Vịnh Hạ Long Hè 2026',
+    publicTitle: 'Hè Đặc Biệt: Hạ Long Giảm 20%',
     offer: 'GIẢM 20%',
-    validUntil: '30 Thg 11, 2024',
+    code: 'HALONG20',
+    displayMode: 'copy',
     category: 'Theo mùa',
-    status: 'Đang hoạt động',
-    usageCount: 45
+    validUntilDate: new Date('2026-05-30'),
+    usageCount: 67,
+    thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYxBlwy8uojyDVx1tSLMwyGv99xZPD9a4IjrbHfCmAfZ2aP3QixIicyOsYuYYSbL9EWycnEx8d0IcQk51THHdlpuH9_I4UmHDFrZQ65wU-5mgzJXfa5Hhxq_A2KeVJeNnzKWBDscQdu1vzpTVqWgVJfcjrWpEIo3PAJ0xMbIiCz3BQesi8vc61kcYJ_jAw2masf4YQYPCa-0nlX1p2OyYFSXcGL_j6AiJDOMwWDU-ruG3mJMQ-zEOVnEOtxGq1biiiKKBZKn_zcts',
   },
   {
     id: 2,
-    title: 'Gói Thiền định Kyoto',
-    offer: 'NÂNG CẤP MIỄN PHÍ',
-    validUntil: '15 Thg 12, 2024',
-    category: 'Văn hóa',
-    status: 'Sắp tới',
-    usageCount: 0
+    title: 'Đặt sớm Langbiang – Tháng 11',
+    publicTitle: 'Đặt sớm: Langbiang giảm 15%',
+    offer: 'GIẢM 15%',
+    code: 'EARLY15',
+    displayMode: 'auto',
+    category: 'Đặt sớm',
+    validUntilDate: new Date('2026-06-15'),
+    usageCount: 34,
+    thumbnail: 'https://picsum.photos/seed/tour1/400/300',
   },
   {
     id: 3,
-    title: 'Chuyến đi Bắc Cực phút chót',
-    offer: 'TẶNG $500',
-    validUntil: '31 Thg 10, 2024',
+    title: 'Flash Sale Nhật Bản – Tháng 1/2027',
+    publicTitle: 'Flash 48h: Tour Nhật giảm 12%',
+    offer: 'GIẢM 12%',
+    code: 'JAPAN12',
+    displayMode: 'copy',
     category: 'Ưu đãi chớp nhoáng',
-    status: 'Hết hạn',
-    usageCount: 120
-  }
+    validUntilDate: new Date('2026-04-24'),
+    usageCount: 18,
+    thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBWiGMIrNWl1-cQvJ0XRrrUGDi0PWIy4mw3PCuxYFgA2n1W-hweKF21RNHk1zYwgqs3pQJFY09tAEn9CHCIxKo0G6QNH2PfZfHcaGvSHcCn7AZ7G_M6mfy5YVOilHbCstGh5vIqruj309g10TYX_jpRbaSINPIw2hP71OpBAFXDdaxJWdz4wfQH2HCItBTwu7j0b2K6zoKT8RQt8CaeY6B1vvzq3gKIjeYHnI9hybch0aEMMMbzhseBR04IP9eLpRDRI2y3vjbwEDY',
+  },
+  {
+    id: 4,
+    title: 'Mùa Thu Dolomites 2024',
+    publicTitle: 'Mùa Thu Tĩnh Lặng – Dolomites',
+    offer: 'GIẢM 20%',
+    code: 'DOLOMITES20',
+    displayMode: 'copy',
+    category: 'Theo mùa',
+    validUntilDate: new Date('2024-11-30'),
+    usageCount: 120,
+    thumbnail: 'https://picsum.photos/seed/dolomites/400/300',
+  },
 ];
+
+const activeCount = DEALS.filter(d => getDealStatus(d.validUntilDate).type === 'active').length;
 
 export default function ManageDeals() {
   return (
@@ -55,7 +86,7 @@ export default function ManageDeals() {
           <div className="bg-surface-container-low p-6 rounded-2xl flex flex-col justify-between h-32 border border-surface-container-high">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Đang hoạt động</span>
             <div className="flex items-baseline gap-2 mt-auto">
-              <span className="text-3xl font-black text-secondary tracking-tight">1</span>
+              <span className="text-3xl font-black text-secondary tracking-tight">{activeCount}</span>
               <span className="text-emerald-500 font-bold text-[10px] uppercase">Hôm nay</span>
             </div>
           </div>
@@ -81,40 +112,52 @@ export default function ManageDeals() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-low/50">
-                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Tên Chiến dịch</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Quyền lợi</th>
-                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Hạn sử dụng</th>
+                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Chiến dịch</th>
+                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Mã / Kiểu</th>
+                  <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Hết hạn</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest">Trạng thái</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest text-right">Lượt dùng</th>
                   <th className="p-6 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-surface-container-highest"></th>
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {DEALS.map((deal) => (
-                  <tr key={deal.id} className="hover:bg-surface-container-lowest transition-colors border-b border-surface-container-highest last:border-0">
-                    <td className="p-6">
-                      <div className="font-bold text-on-surface">{deal.title}</div>
-                      <div className="text-xs text-on-surface-variant mt-1">{deal.category}</div>
-                    </td>
-                    <td className="p-6 font-bold text-secondary">{deal.offer}</td>
-                    <td className="p-6 text-on-surface-variant">{deal.validUntil}</td>
-                    <td className="p-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
-                        deal.status === 'Đang hoạt động' ? 'bg-emerald-100 text-emerald-800' :
-                        deal.status === 'Sắp tới' ? 'bg-blue-100 text-blue-800' :
-                        'bg-slate-100 text-slate-500'
-                      }`}>
-                        {deal.status}
-                      </span>
-                    </td>
-                    <td className="p-6 text-right font-mono font-bold text-on-surface-variant">{deal.usageCount}</td>
-                    <td className="p-6 text-right">
-                      <Link to={`/admin/deals/edit/${deal.id}`} className="inline-flex p-2 hover:bg-surface-container rounded-lg text-slate-400 hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined text-sm">edit</span>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {DEALS.map((deal) => {
+                  const status = getDealStatus(deal.validUntilDate);
+                  const isExpired = status.type === 'expired';
+                  return (
+                    <tr key={deal.id} className={`hover:bg-surface-container-lowest transition-colors border-b border-surface-container-highest last:border-0 ${isExpired ? 'opacity-60' : ''}`}>
+                      <td className="p-6">
+                        <div className="flex items-center gap-3">
+                          <img src={deal.thumbnail} alt={deal.title} className={`w-12 h-12 rounded-xl object-cover flex-shrink-0 ${isExpired ? 'grayscale' : ''}`} />
+                          <div>
+                            <div className="font-bold text-on-surface">{deal.publicTitle}</div>
+                            <div className="text-xs text-on-surface-variant mt-0.5">{deal.category} · <span className="font-bold text-secondary">{deal.offer}</span></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-6">
+                        <span className="font-mono text-xs bg-surface-container-low px-2 py-1 rounded-lg font-bold text-on-surface">{deal.code}</span>
+                        <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">
+                          {deal.displayMode === 'copy' ? 'Copy mã' : 'Tự động áp dụng'}
+                        </div>
+                      </td>
+                      <td className="p-6 text-on-surface-variant text-xs font-medium">
+                        {deal.validUntilDate.toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="p-6">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${status.bg} ${status.text}`}>
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="p-6 text-right font-mono font-bold text-on-surface-variant">{deal.usageCount}</td>
+                      <td className="p-6 text-right">
+                        <Link to={`/admin/deals/edit/${deal.id}`} className="inline-flex p-2 hover:bg-surface-container rounded-lg text-slate-400 hover:text-primary transition-colors">
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

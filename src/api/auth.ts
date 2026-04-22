@@ -1,0 +1,45 @@
+import apiClient from './client';
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  fullName: string;
+  phone?: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  tokenType: string;
+  userId: number;
+  email: string;
+  fullName: string;
+  role: string;
+}
+
+export interface UserInfo {
+  id: number;
+  email: string;
+  fullName: string;
+  role: string;
+  avatarUrl?: string;
+}
+
+export async function login(payload: LoginPayload): Promise<AuthResponse> {
+  const { data } = await apiClient.post('/auth/login', payload);
+  return data.data;
+}
+
+export async function register(payload: RegisterPayload): Promise<AuthResponse> {
+  const { data } = await apiClient.post('/auth/register', payload);
+  return data.data;
+}
+
+export async function getMe(): Promise<UserInfo> {
+  const { data } = await apiClient.get('/auth/me');
+  return data.data;
+}

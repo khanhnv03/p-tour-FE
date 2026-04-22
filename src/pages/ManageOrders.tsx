@@ -3,36 +3,36 @@ import { Link } from 'react-router-dom';
 
 const orders = [
   {
-    id: 'VA-88291',
-    customer: 'Vân Khánh',
-    tour: 'Amalfi Dream Cruise',
-    amount: '25.490.000₫',
+    id: 'BK-1934',
+    customer: 'Alex PTIT',
+    tour: 'Bình minh trên đỉnh Langbiang',
+    amount: '27.930.000₫',
     status: 'Đã thanh toán',
-    date: '15/10/2024'
+    date: '12/11/2026'
   },
   {
     id: 'VA-88292',
-    customer: 'Alex Rivera',
-    tour: 'Iceland Highland Trek',
-    amount: '42.000.000₫',
+    customer: 'Nguyễn Thảo Trang',
+    tour: 'Nhật Bản: Cung đường vàng Tokyo – Kyoto',
+    amount: '65.000.000₫',
     status: 'Đang xử lý',
-    date: '16/10/2024'
+    date: '20/04/2026'
   },
   {
     id: 'VA-88293',
-    customer: 'Sarah Jenkins',
-    tour: 'Tokyo Neon Nights',
-    amount: '18.500.000₫',
+    customer: 'David Wilson',
+    tour: 'Thiên đường Maldives: Nghỉ dưỡng 5 sao',
+    amount: '91.800.000₫',
     status: 'Đã hoàn tiền',
-    date: '17/10/2024'
+    date: '02/04/2026'
   },
   {
     id: 'VA-88294',
-    customer: 'Marcus Thorne',
-    tour: 'Venice Serenade',
-    amount: '31.200.000₫',
+    customer: 'Lê Minh Anh',
+    tour: 'Du thuyền Premium Vịnh Hạ Long',
+    amount: '10.920.000₫',
     status: 'Đã thanh toán',
-    date: '18/10/2024'
+    date: '18/03/2026'
   }
 ];
 

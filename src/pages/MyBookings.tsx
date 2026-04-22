@@ -1,6 +1,9 @@
-import React from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function MyBookings() {
+  const [showRefundModal, setShowRefundModal] = useState(false);
+
   return (
     <div className="p-6 md:p-12 lg:p-16 space-y-12">
       {/* Page Header (Editorial Layering) */}
@@ -27,22 +30,22 @@ export default function MyBookings() {
           <div className="group bg-surface-container-lowest p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all hover:shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] hover:translate-y-[-2px]">
             <div className="flex items-center gap-6">
               <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
-                <img alt="Amalfi Coast" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANMe253fDevdSvVlMQ5yaErXSzZHOe_w7MzYC_qMSpGHrfv9YwYy0Dni_x_EWLqGPYW1Iw3lgAYU9SOYgMHS_NF0Ci_VKDG7_VasQhqfpYVpYjdRD_rQlhsuUokA38qR5JIa8HE15rRYn2t96iRYnxPfs4gntacgX8OKMkdIIPN2ivvh6wnAE4OABRvsFcMy9H30kL5NsNKm2BTDddH1yY0ZyJwVByubkEYOCOYc0PItqBdd1HdZatTabh8CffiSc0e3MM2ezp3C4"/>
+                <img alt="Bình minh trên đỉnh Langbiang" className="w-full h-full object-cover" src="https://picsum.photos/seed/tour1/400/300"/>
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-primary px-2 py-0.5 bg-primary/5 rounded-md">#HZ-2024-881</span>
-                  <span className="px-3 py-1 rounded-full bg-surface-container-lowest border border-primary/10 text-[10px] font-black uppercase text-[#00458e]">Xác nhận</span>
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-primary px-2 py-0.5 bg-primary/5 rounded-md">#BK-1934</span>
+                  <span className="px-3 py-1 rounded-full bg-surface-container-lowest border border-primary/10 text-[10px] font-black uppercase text-[#00458e]">Đã xác nhận</span>
                 </div>
-                <h3 className="text-xl font-bold text-on-surface tracking-tight">The Amalfi Dream Cruise</h3>
+                <h3 className="text-xl font-bold text-on-surface tracking-tight">Bình minh trên đỉnh Langbiang</h3>
                 <p className="text-on-surface-variant text-sm flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">calendar_today</span>
-                  12 Oct - 18 Oct, 2024
+                  12 Thg 11, 2026 · 2 người lớn · Lâm Đồng, VN
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="px-5 py-2 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-colors">Chi tiết</button>
+              <Link to="/my-bookings/BK-1934" className="px-5 py-2 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-colors">Chi tiết</Link>
               <button className="px-5 py-2 bg-secondary text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-md transition-all">Quản lý chuyến đi</button>
             </div>
           </div>
@@ -66,7 +69,7 @@ export default function MyBookings() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="px-5 py-2 text-sm font-bold text-slate-500 border border-slate-200 rounded-xl">Xem hoàn tiền</button>
+              <button onClick={() => setShowRefundModal(true)} className="px-5 py-2 text-sm font-bold text-slate-500 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Xem hoàn tiền</button>
             </div>
           </div>
 
@@ -89,8 +92,8 @@ export default function MyBookings() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="px-5 py-2 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-colors">Chi tiết</button>
-              <button className="px-5 py-2 bg-slate-100 text-slate-800 text-sm font-bold rounded-xl shadow-sm">Hoàn tất thanh toán</button>
+              <Link to="/my-bookings/HZ-2024-942" className="px-5 py-2 text-sm font-bold text-primary hover:bg-primary/5 rounded-xl transition-colors">Chi tiết</Link>
+              <Link to="/checkout" className="px-5 py-2 bg-slate-100 text-slate-800 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-200 transition-colors">Hoàn tất thanh toán</Link>
             </div>
           </div>
         </div>
@@ -144,6 +147,73 @@ export default function MyBookings() {
           </div>
         </div>
       </section>
+
+      {/* Refund Status Modal */}
+      {showRefundModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowRefundModal(false)}></div>
+          <div className="bg-surface-container-lowest p-8 w-full max-w-md rounded-[2rem] shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowRefundModal(false)}
+              className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-surface-container-high hover:bg-surface-container-highest rounded-full text-on-surface-variant transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-red-600">assignment_return</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-on-surface">Trạng thái hoàn tiền</h3>
+                <p className="text-xs text-on-surface-variant">Mã đặt chỗ: #HZ-2024-102</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="flex items-start gap-4 p-4 bg-surface-container-low rounded-xl">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-green-600 text-sm">check</span>
+                </div>
+                <div>
+                  <p className="font-bold text-on-surface text-sm">Yêu cầu hủy đã được chấp nhận</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">03 Thg 12, 2024</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-surface-container-low rounded-xl">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-green-600 text-sm">check</span>
+                </div>
+                <div>
+                  <p className="font-bold text-on-surface text-sm">Đã xác nhận số tiền hoàn</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Hoàn 80% · 06 Thg 12, 2024</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-amber-600 text-sm">schedule</span>
+                </div>
+                <div>
+                  <p className="font-bold text-on-surface text-sm">Đang xử lý qua ngân hàng</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Dự kiến 5–7 ngày làm việc</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-surface-container-high pt-4 flex justify-between items-center">
+              <span className="text-sm text-on-surface-variant font-medium">Số tiền hoàn trả</span>
+              <span className="text-xl font-black text-green-600">đang xử lý</span>
+            </div>
+
+            <button
+              onClick={() => setShowRefundModal(false)}
+              className="mt-6 w-full py-3 bg-surface-container-low hover:bg-surface-container font-bold rounded-xl text-sm transition-colors"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

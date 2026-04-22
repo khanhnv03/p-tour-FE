@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO } from '../constants';
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const STEPS = ['Thông tin', 'Xem lại', 'Thanh toán', 'Xác nhận'];
+
   return (
     <div className="bg-background text-on-surface font-body selection:bg-primary/20 min-h-screen flex flex-col">
       {/* TopNavBar */}
@@ -33,30 +38,63 @@ export default function Checkout() {
           <div className="flex justify-between max-w-2xl mx-auto relative">
             {/* Progress Line */}
             <div className="absolute top-5 left-0 w-full h-[2px] bg-surface-container-high -z-10">
-              <div className="h-full bg-primary w-2/3 transition-all duration-500"></div>
+              <div
+                className="h-full bg-primary transition-all duration-500"
+                style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+              ></div>
             </div>
-            {/* Step 1 */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">1</div>
-              <span className="text-xs font-bold tracking-wider uppercase text-primary">Thông tin</span>
-            </div>
-            {/* Step 2 */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">2</div>
-              <span className="text-xs font-bold tracking-wider uppercase text-primary">Xem lại</span>
-            </div>
-            {/* Step 3 (Active) */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full ring-4 ring-primary-fixed bg-primary text-white flex items-center justify-center font-bold text-sm shadow-lg">3</div>
-              <span className="text-xs font-bold tracking-wider uppercase text-on-surface">Thanh toán</span>
-            </div>
-            {/* Step 4 */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-bold text-sm">4</div>
-              <span className="text-xs font-bold tracking-wider uppercase text-on-surface-variant">Xác nhận</span>
-            </div>
+            {STEPS.map((label, idx) => {
+              const step = idx + 1;
+              const isCompleted = step < currentStep;
+              const isActive = step === currentStep;
+              return (
+                <div key={step} className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={() => setCurrentStep(step)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                      isCompleted
+                        ? 'bg-primary text-white'
+                        : isActive
+                        ? 'ring-4 ring-primary-fixed bg-primary text-white shadow-lg'
+                        : 'bg-surface-container-high text-on-surface-variant'
+                    }`}
+                  >
+                    {isCompleted ? <span className="material-symbols-outlined text-sm">check</span> : step}
+                  </button>
+                  <span className={`text-xs font-bold tracking-wider uppercase ${isActive ? 'text-on-surface' : isCompleted ? 'text-primary' : 'text-on-surface-variant'}`}>
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
+
+        {/* Step content indicator */}
+        {currentStep === 1 && (
+          <div className="lg:col-span-12 mb-8">
+            <div className="max-w-2xl mx-auto bg-primary/5 border border-primary/10 rounded-2xl p-5 flex items-start gap-4">
+              <span className="material-symbols-outlined text-primary mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+              <div>
+                <p className="font-bold text-on-surface">Bước 1: Thông tin khách hàng</p>
+                <p className="text-sm text-on-surface-variant mt-0.5">Nhập thông tin liên lạc và yêu cầu đặc biệt cho chuyến đi.</p>
+              </div>
+              <button onClick={() => setCurrentStep(2)} className="ml-auto text-primary font-bold text-sm hover:underline whitespace-nowrap">Tiếp tục →</button>
+            </div>
+          </div>
+        )}
+        {currentStep === 2 && (
+          <div className="lg:col-span-12 mb-8">
+            <div className="max-w-2xl mx-auto bg-secondary/5 border border-secondary/10 rounded-2xl p-5 flex items-start gap-4">
+              <span className="material-symbols-outlined text-secondary mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>checklist</span>
+              <div>
+                <p className="font-bold text-on-surface">Bước 2: Xem lại đặt chỗ</p>
+                <p className="text-sm text-on-surface-variant mt-0.5">Kiểm tra lại thông tin tour, ngày khởi hành và số khách trước khi thanh toán.</p>
+              </div>
+              <button onClick={() => setCurrentStep(3)} className="ml-auto text-secondary font-bold text-sm hover:underline whitespace-nowrap">Tiếp tục →</button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* Left Column: Checkout Forms */}
@@ -152,7 +190,7 @@ export default function Checkout() {
                 onClick={() => navigate('/success')}
                 className="primary-gradient text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all w-full sm:w-auto"
               >
-                Xác nhận Thanh toán 25,490,000₫
+                Xác nhận Thanh toán 27,930,000₫
               </button>
             </div>
           </div>
@@ -165,18 +203,18 @@ export default function Checkout() {
               
               <h2 className="text-xl font-extrabold tracking-tight mb-6 text-on-surface relative z-10">Tóm tắt Chuyến đi</h2>
               
-              {/* Tour Brief */}
+              {/* Tour Brief — consistent with BookingDetails (#BK-1934) */}
               <div className="flex gap-4 mb-8 relative z-10">
                 <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0">
-                  <img 
-                    className="w-full h-full object-cover" 
-                    alt="tranquil aerial view of Ha Long Bay islands covered in green vegetation with a lone wooden junk boat sailing on emerald water" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDr2YSLmTIxjlIqFFBTr9Ax3o7r-jZQqGGadVy7btZKID6BoEiCliRYJqm7jRGpoTeTVXPGhgxUubj5GAu3chlf069et29bLeE6E0rU98iKKY30y1eYJk1IIQSYx-1HJ001ABrEQ4q8DrjDFExvyYf5mzOFScBUzpJ3NNuyhiaDh3rDK0SOMl6FIV7UTwjVffKeUirK07Je2SBLfDan5KEkUJSby3EsZpY76TNZZn_V2S9cYygBfvSkT5bUsI6BQKX_byFEbJZMkPQ" 
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="Bình minh trên đỉnh Langbiang"
+                    src="https://picsum.photos/seed/tour1/400/300"
                   />
                 </div>
                 <div className="flex flex-col justify-center">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1">Luxury Escape</span>
-                  <h3 className="font-bold text-on-surface leading-snug">Vịnh Hạ Long: Du thuyền di sản 3 ngày 2 đêm</h3>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1">Thám hiểm 5 ngày</span>
+                  <h3 className="font-bold text-on-surface leading-snug">Bình minh trên đỉnh Langbiang</h3>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="material-symbols-outlined text-[14px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                     <span className="text-xs font-bold text-on-surface">4.9</span>
@@ -192,7 +230,7 @@ export default function Checkout() {
                     <span className="material-symbols-outlined text-primary opacity-70">calendar_today</span>
                     <span>Ngày khởi hành</span>
                   </div>
-                  <span className="font-bold text-on-surface">15 Thg 10, 2024</span>
+                  <span className="font-bold text-on-surface">12 Thg 11, 2026</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-3 text-on-surface-variant">
@@ -201,21 +239,28 @@ export default function Checkout() {
                   </div>
                   <span className="font-bold text-on-surface">02 Người lớn</span>
                 </div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-3 text-on-surface-variant">
+                    <span className="material-symbols-outlined text-primary opacity-70">location_on</span>
+                    <span>Điểm đến</span>
+                  </div>
+                  <span className="font-bold text-on-surface">Lâm Đồng, VN</span>
+                </div>
               </div>
 
               {/* Pricing */}
               <div className="space-y-3 relative z-10">
                 <div className="flex justify-between text-on-surface-variant">
-                  <span className="text-sm">Giá tạm tính</span>
-                  <span className="font-medium">24,000,000₫</span>
+                  <span className="text-sm">Giá tour (x2 khách)</span>
+                  <span className="font-medium">26,600,000₫</span>
                 </div>
                 <div className="flex justify-between text-on-surface-variant">
                   <span className="text-sm">Thuế &amp; Phí (5%)</span>
-                  <span className="font-medium">1,490,000₫</span>
+                  <span className="font-medium">1,330,000₫</span>
                 </div>
                 <div className="flex justify-between items-center pt-4 mt-4 border-t border-outline-variant/20">
                   <span className="text-lg font-bold text-on-surface">Tổng cộng</span>
-                  <span className="text-2xl font-black text-primary tracking-tighter">25,490,000₫</span>
+                  <span className="text-2xl font-black text-primary tracking-tighter">27,930,000₫</span>
                 </div>
               </div>
             </div>
