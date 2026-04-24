@@ -118,6 +118,7 @@ export async function listAdminTours(params: {
   status?: TourStatus;
   departureDate?: string;
   availableSlots?: number;
+  sort?: string;
   page?: number;
   size?: number;
 } = {}): Promise<PageResponse<TourSummary>> {
@@ -161,6 +162,10 @@ export async function createAdminTour(payload: SaveTourRequest): Promise<TourDet
 export async function updateAdminTour(id: number, payload: SaveTourRequest): Promise<TourDetail> {
   const { data } = await apiClient.put(`/admin/tours/${id}`, payload);
   return data.data;
+}
+
+export async function deleteAdminTour(id: number): Promise<void> {
+  await apiClient.delete(`/admin/tours/${id}`);
 }
 
 export async function listAdminBookings(params: {

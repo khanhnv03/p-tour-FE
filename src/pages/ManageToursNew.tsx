@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChangeEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  listAdminTours,
+  deleteAdminTour,
   listAdminDestinations,
   getAdminDestinationSummary,
   getAdminDestination,
@@ -12,20 +14,12 @@ import {
 } from '../api/admin';
 import type { DestinationSummary } from '../api/admin';
 import type { Destination, SaveDestinationRequest } from '../api/destinations';
+import type { TourStatus, TourSummary } from '../api/tours';
 
-/* ── mock tour data (tours tab – chưa ghép API) ── */
-const TOUR_PACKAGES = [
-  { id: 1, name: 'Bình minh trên đỉnh Langbiang',           destination: 'Lâm Đồng, VN',   duration: '5 ngày 4 đêm', price: '13.300.000₫', status: 'Đang hoạt động', bookings: 34, image: 'https://picsum.photos/seed/tour1/400/300' },
-  { id: 2, name: 'Du thuyền Premium Vịnh Hạ Long',          destination: 'Quảng Ninh, VN', duration: '3 ngày 2 đêm', price: '5.200.000₫',  status: 'Đang hoạt động', bookings: 78, image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYxBlwy8uojyDVx1tSLMwyGv99xZPD9a4IjrbHfCmAfZ2aP3QixIicyOsYuYYSbL9EWycnEx8d0IcQk51THHdlpuH9_I4UmHDFrZQ65wU-5mgzJXfa5Hhxq_A2KeVJeNnzKWBDscQdu1vzpTVqWgVJfcjrWpEIo3PAJ0xMbIiCz3BQesi8vc61kcYJ_jAw2masf4YQYPCa-0nlX1p2OyYFSXcGL_j6AiJDOMwWDU-ruG3mJMQ-zEOVnEOtxGq1biiiKKBZKn_zcts' },
-  { id: 3, name: 'Nhật Bản: Cung đường vàng Tokyo – Kyoto', destination: 'Nhật Bản',       duration: '7 ngày 6 đêm', price: '32.500.000₫', status: 'Sắp mở bán',    bookings: 5,  image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBWiGMIrNWl1-cQvJ0XRrrUGDi0PWIy4mw3PCuxYFgA2n1W-hweKF21RNHk1zYwgqs3pQJFY09tAEn9CHCIxKo0G6QNH2PfZfHcaGvSHcCn7AZ7G_M6mfy5YVOilHbCstGh5vIqruj309g10TYX_jpRbaSINPIw2hP71OpBAFXDdaxJWdz4wfQH2HCItBTwu7j0b2K6zoKT8RQt8CaeY6B1vvzq3gKIjeYHnI9hybch0aEMMMbzhseBR04IP9eLpRDRI2y3vjbwEDY' },
-  { id: 4, name: 'Thiên đường Maldives: Nghỉ dưỡng 5 sao', destination: 'Maldives',        duration: '5 ngày 4 đêm', price: '45.900.000₫', status: 'Đang hoạt động', bookings: 12, image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCogkWsfUeEvcsshybb2U8UofOwaSL-ipUP8kA6YEe2PcKo4gNU34YK9aK9EKDkgFrNoUQe7yqmBrqfRApLqcf1ylNa3QLsurtYDC5vlM_9har_AisY9ohN4sCJ2MjeqUjTmKuTk4I2JwvFjCZO82LQ2vnDN1q1P7RwoHfehfVwkYlgnAA--cKOwUfwk2BGWWO7-uB8Yly3tby_jEkAjJJBk7l91oC_W4bum5p0XV18oHrafZqhZuc3mRnsq55KfVc0TqqVVbjxQEY' },
-  { id: 5, name: 'Hội An: Phố Cổ & Biển Cửa Đại',         destination: 'Quảng Nam, VN',  duration: '4 ngày 3 đêm', price: '4.800.000₫',  status: 'Đang hoạt động', bookings: 56, image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBn4YWFotE8umBe_jkoM8QWn7OttkOxZLk1tMYztD5wSXn7jqsAUMRCB93A9kpdtdivXPc3amRoqo98FbLTj34yNdUhqJ1PL_mRbjdeQGpIxwdZiK73RkaOPS-WJOupnQUMDAm3ztssJF07ujzwnq1hWZ-EHL1O-_hIkCcS8-qQi8JhmDkGo2XanXiUBUzkP8P24SDSCkNf_fgtHS3KQQWLSGqbjWV2hXYIzbF0MHErY1juj-uoKdxmCWJ7jgnVMpqkCZmrbmOOq6I' },
-];
-
-const STATUS_CFG: Record<string, { bg: string; text: string; dot: string }> = {
-  'Đang hoạt động': { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  'Sắp mở bán':     { bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-500'    },
-  'Tạm dừng':       { bg: 'bg-slate-100',  text: 'text-slate-500',   dot: 'bg-slate-400'   },
+const TOUR_STATUS_CFG: Record<TourStatus, { label: string; bg: string; text: string; dot: string }> = {
+  PUBLISHED: { label: 'Đang hoạt động', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  DRAFT:     { label: 'Bản nháp',       bg: 'bg-slate-100',  text: 'text-slate-600',   dot: 'bg-slate-400' },
+  ARCHIVED:  { label: 'Lưu trữ',        bg: 'bg-red-50',     text: 'text-red-600',     dot: 'bg-red-400' },
 };
 
 const PLACEHOLDER_IMG = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
@@ -50,12 +44,26 @@ const EMPTY_FORM: SaveDestinationRequest = {
   featured: false,
 };
 
+function formatCurrency(value: number) {
+  return `${Number(value || 0).toLocaleString('vi-VN')}đ`;
+}
+
 export default function ManageToursNew() {
   const location = useLocation();
   const navigate = useNavigate();
   const routeTab: Tab = location.pathname.startsWith('/admin/destinations') ? 'destinations' : 'tours';
   const [tab,  setTab]  = useState<Tab>(routeTab);
   const [view, setView] = useState<ViewMode>('grid');
+
+  /* ── tour list state ── */
+  const [tours,            setTours]            = useState<TourSummary[]>([]);
+  const [tourLoading,      setTourLoading]      = useState(false);
+  const [tourError,        setTourError]        = useState<string | null>(null);
+  const [tourKeyword,      setTourKeyword]      = useState('');
+  const [tourStatus,       setTourStatus]       = useState<TourStatus | 'all'>('all');
+  const [tourPage,         setTourPage]         = useState(0);
+  const [tourTotalPages,   setTourTotalPages]   = useState(0);
+  const [tourTotalElements,setTourTotalElements]= useState(0);
 
   /* ── destination list state ── */
   const [destinations,       setDestinations]       = useState<Destination[]>([]);
@@ -79,6 +87,27 @@ export default function ManageToursNew() {
   const [formError,     setFormError]     = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchTours = useCallback(async (keyword: string, status: TourStatus | 'all', page: number) => {
+    setTourLoading(true);
+    setTourError(null);
+    try {
+      const res = await listAdminTours({
+        keyword: keyword || undefined,
+        status: status === 'all' ? undefined : status,
+        page,
+        size: 12,
+        sort: 'createdAt,desc',
+      });
+      setTours(res.content);
+      setTourTotalPages(res.totalPages);
+      setTourTotalElements(res.totalElements);
+    } catch {
+      setTourError('Không thể tải danh sách tour. Vui lòng thử lại.');
+    } finally {
+      setTourLoading(false);
+    }
+  }, []);
 
   /* ── delete confirm state ── */
   const [deleteTarget, setDeleteTarget] = useState<Destination | null>(null);
@@ -127,6 +156,12 @@ export default function ManageToursNew() {
       fetchDestinations(destKeyword, destPage, destFeaturedFilter, destRegion, destSort);
     }
   }, [tab, destKeyword, destPage, destFeaturedFilter, destRegion, destSort, fetchDestinations]);
+
+  useEffect(() => {
+    if (tab === 'tours') {
+      fetchTours(tourKeyword, tourStatus, tourPage);
+    }
+  }, [tab, tourKeyword, tourStatus, tourPage, fetchTours]);
 
   function switchTab(nextTab: Tab) {
     setTab(nextTab);
@@ -248,9 +283,21 @@ export default function ManageToursNew() {
     }
   }
 
+  async function handleDeleteTour(tour: TourSummary) {
+    const confirmed = window.confirm(`Xóa hoặc lưu trữ tour "${tour.title}"?`);
+    if (!confirmed) return;
+    try {
+      await deleteAdminTour(tour.id);
+      fetchTours(tourKeyword, tourStatus, tourPage);
+    } catch {
+      setTourError('Xóa tour thất bại. Tour có đặt chỗ sẽ được lưu trữ thay vì xóa.');
+    }
+  }
+
   const activeDestinationRate = destSummary && destSummary.totalDestinations > 0
     ? Math.round((destSummary.destinationsWithTours / destSummary.totalDestinations) * 1000) / 10
     : 0;
+  const publishedTours = tours.filter(t => t.status === 'PUBLISHED').length;
 
   return (
     <div className="flex flex-col flex-1 p-6 lg:p-8 overflow-y-auto gap-6">
@@ -556,7 +603,7 @@ export default function ManageToursNew() {
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black text-primary tracking-tight">
-              {tab === 'tours' ? TOUR_PACKAGES.length : destLoading ? '…' : (destSummary?.totalDestinations ?? destTotalElements)}
+              {tab === 'tours' ? (tourLoading ? '…' : tourTotalElements) : destLoading ? '…' : (destSummary?.totalDestinations ?? destTotalElements)}
             </span>
           </div>
         </div>
@@ -566,7 +613,7 @@ export default function ManageToursNew() {
           </p>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-black text-on-surface tracking-tight">
-              {tab === 'tours' ? 582 : (destSummary?.featuredDestinations ?? 0)}
+              {tab === 'tours' ? publishedTours : (destSummary?.featuredDestinations ?? 0)}
             </span>
             <span className="material-symbols-outlined text-primary">
               {tab === 'tours' ? 'trending_up' : 'star'}
@@ -589,6 +636,36 @@ export default function ManageToursNew() {
       </div>
 
       {/* ── Search (destinations tab only) ── */}
+      {tab === 'tours' && (
+        <div className="shrink-0 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3.5 py-2.5 w-full max-w-md focus-within:border-primary/60 transition-colors">
+            <span className="material-symbols-outlined text-slate-400 text-sm">search</span>
+            <input
+              type="text"
+              value={tourKeyword}
+              onChange={e => { setTourKeyword(e.target.value); setTourPage(0); }}
+              placeholder="Tìm kiếm tour…"
+              className="flex-1 text-sm text-on-surface bg-transparent focus:outline-none placeholder:text-slate-400"
+            />
+            {tourKeyword && (
+              <button onClick={() => { setTourKeyword(''); setTourPage(0); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            )}
+          </div>
+          <select
+            value={tourStatus}
+            onChange={e => { setTourStatus(e.target.value as TourStatus | 'all'); setTourPage(0); }}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:outline-none focus:border-primary/60"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="PUBLISHED">Đang hoạt động</option>
+            <option value="DRAFT">Bản nháp</option>
+            <option value="ARCHIVED">Lưu trữ</option>
+          </select>
+        </div>
+      )}
+
       {tab === 'destinations' && (
         <div className="shrink-0 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3.5 py-2.5 w-full max-w-md focus-within:border-primary/60 transition-colors">
@@ -641,10 +718,44 @@ export default function ManageToursNew() {
         <div className="h-3.5 w-px bg-slate-200" />
         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
           {tab === 'tours'
-            ? `${TOUR_PACKAGES.length} gói`
+            ? tourLoading ? '…' : `${tourTotalElements} gói`
             : destLoading ? '…' : `${destTotalElements} khu vực`}
         </span>
       </div>
+
+      {tab === 'tours' && tourLoading && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <span className="material-symbols-outlined text-4xl text-primary" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
+          <p className="text-sm text-slate-500 font-medium">Đang tải tour…</p>
+        </div>
+      )}
+
+      {tab === 'tours' && !tourLoading && tourError && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <span className="material-symbols-outlined text-5xl text-error" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+          <p className="text-sm text-slate-600 font-medium">{tourError}</p>
+          <button
+            onClick={() => fetchTours(tourKeyword, tourStatus, tourPage)}
+            className="px-4 py-2 rounded-xl bg-primary/8 text-primary text-sm font-bold hover:bg-primary/15 transition-all"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {tab === 'tours' && !tourLoading && !tourError && tours.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <span className="material-symbols-outlined text-5xl text-slate-300" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
+          <p className="text-sm text-slate-500 font-medium">
+            {tourKeyword ? `Không tìm thấy tour cho "${tourKeyword}"` : 'Chưa có tour nào'}
+          </p>
+          {!tourKeyword && (
+            <Link to="/admin/tours/new" className="px-4 py-2 rounded-xl settings-btn-primary text-sm font-bold">
+              Tạo tour đầu tiên
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* ── Destinations: loading state ── */}
       {tab === 'destinations' && destLoading && (
@@ -684,36 +795,37 @@ export default function ManageToursNew() {
       )}
 
       {/* ── Content (Tours always, Destinations when loaded) ── */}
-      {(tab === 'tours' || (!destLoading && !destError && destinations.length > 0)) && (
+      {((tab === 'tours' && !tourLoading && !tourError && tours.length > 0) || (!destLoading && !destError && destinations.length > 0)) && (
         <>
           {view === 'grid' ? (
             /* ── Grid view ── */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {tab === 'tours'
-                ? TOUR_PACKAGES.map(tour => {
-                    const s = STATUS_CFG[tour.status] ?? STATUS_CFG['Tạm dừng'];
+                ? tours.map(tour => {
+                    const s = TOUR_STATUS_CFG[tour.status];
                     return (
                       <div key={tour.id} className="group bg-white rounded-2xl overflow-hidden border border-black/5 shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:border-primary/25 hover:shadow-[0_4px_24px_rgba(0,78,159,0.10)] transition-all">
                         <div className="relative aspect-[4/3] overflow-hidden">
-                          <img alt={tour.name} src={tour.image}
+                          <img alt={tour.title} src={tour.coverImageUrl ?? PLACEHOLDER_IMG}
+                            onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           <div className={`absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest backdrop-blur-sm bg-white/90 ${s.text}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                            {tour.status}
+                            {s.label}
                           </div>
                         </div>
                         <div className="p-4">
-                          <h4 className="text-sm font-black text-on-surface mb-0.5 line-clamp-2 leading-snug">{tour.name}</h4>
+                          <h4 className="text-sm font-black text-on-surface mb-0.5 line-clamp-2 leading-snug">{tour.title}</h4>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                            {tour.destination} · {tour.duration}
+                            {tour.destinationName} · {tour.durationDays} ngày {tour.durationNights} đêm
                           </p>
                           <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
                             <span className="text-primary font-black text-sm">
-                              {tour.price}<span className="text-[9px] text-slate-400 font-bold">/khách</span>
+                              {formatCurrency(tour.pricePerPerson)}<span className="text-[9px] text-slate-400 font-bold">/khách</span>
                             </span>
                             <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
                               <span className="material-symbols-outlined text-[13px]">confirmation_number</span>
-                              {tour.bookings}
+                              {tour.bookingCount}
                             </span>
                           </div>
                           <div className="flex gap-2">
@@ -721,7 +833,10 @@ export default function ManageToursNew() {
                               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold bg-surface-container-low hover:bg-primary/8 hover:text-primary text-slate-600 transition-all">
                               <span className="material-symbols-outlined text-xs">edit_note</span>Sửa
                             </Link>
-                            <button className="w-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-error text-error hover:text-white transition-all">
+                            <button
+                              onClick={() => handleDeleteTour(tour)}
+                              className="w-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-error text-error hover:text-white transition-all"
+                            >
                               <span className="material-symbols-outlined text-sm">delete</span>
                             </button>
                           </div>
@@ -831,31 +946,39 @@ export default function ManageToursNew() {
               </div>
 
               {tab === 'tours'
-                ? TOUR_PACKAGES.map(tour => {
-                    const s = STATUS_CFG[tour.status] ?? STATUS_CFG['Tạm dừng'];
+                ? tours.map(tour => {
+                    const s = TOUR_STATUS_CFG[tour.status];
                     return (
                       <div key={tour.id} className="grid grid-cols-12 px-6 py-3.5 items-center border-b border-gray-50 hover:bg-slate-50/50 transition-colors last:border-b-0">
                         <div className="col-span-5 flex items-center gap-3">
-                          <img src={tour.image} alt={tour.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                          <img
+                            src={tour.coverImageUrl ?? PLACEHOLDER_IMG}
+                            alt={tour.title}
+                            onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
+                            className="w-10 h-10 rounded-xl object-cover shrink-0"
+                          />
                           <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-800 truncate">{tour.name}</p>
-                            <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest">{tour.destination} · {tour.duration}</p>
+                            <p className="text-sm font-bold text-gray-800 truncate">{tour.title}</p>
+                            <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest">{tour.destinationName} · {tour.durationDays} ngày {tour.durationNights} đêm</p>
                           </div>
                         </div>
-                        <span className="col-span-2 text-sm font-black text-primary">{tour.price}</span>
+                        <span className="col-span-2 text-sm font-black text-primary">{formatCurrency(tour.pricePerPerson)}</span>
                         <div className="col-span-2">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${s.bg} ${s.text}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                            {tour.status}
+                            {s.label}
                           </span>
                         </div>
-                        <span className="col-span-1 text-sm font-black text-on-surface text-center">{tour.bookings}</span>
+                        <span className="col-span-1 text-sm font-black text-on-surface text-center">{tour.bookingCount}</span>
                         <div className="col-span-2 flex justify-end gap-1.5">
                           <Link to={`/admin/tours/edit/${tour.id}`}
                             className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/8 rounded-lg transition-all">
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </Link>
-                          <button className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-error hover:bg-error/8 rounded-lg transition-all">
+                          <button
+                            onClick={() => handleDeleteTour(tour)}
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-error hover:bg-error/8 rounded-lg transition-all"
+                          >
                             <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
                         </div>
@@ -908,7 +1031,29 @@ export default function ManageToursNew() {
             </div>
           )}
 
-          {/* ── Pagination (destinations only) ── */}
+          {/* ── Pagination ── */}
+          {tab === 'tours' && tourTotalPages > 1 && (
+            <div className="shrink-0 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setTourPage(p => Math.max(0, p - 1))}
+                disabled={tourPage === 0}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-slate-400 hover:border-primary/60 hover:text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined text-sm">chevron_left</span>
+              </button>
+              <span className="text-sm font-bold text-slate-500 px-3">
+                Trang {tourPage + 1} / {tourTotalPages}
+              </span>
+              <button
+                onClick={() => setTourPage(p => Math.min(tourTotalPages - 1, p + 1))}
+                disabled={tourPage >= tourTotalPages - 1}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-slate-400 hover:border-primary/60 hover:text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined text-sm">chevron_right</span>
+              </button>
+            </div>
+          )}
+
           {tab === 'destinations' && destTotalPages > 1 && (
             <div className="shrink-0 flex items-center justify-center gap-2">
               <button
