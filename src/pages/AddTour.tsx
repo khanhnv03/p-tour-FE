@@ -18,6 +18,12 @@ const DIFFICULTY_LABEL: Record<TourDifficulty, string> = {
   HARD: 'Khó',
 };
 
+const TOUR_STATUS_LABEL: Record<TourStatus, string> = {
+  DRAFT: 'Bản nháp',
+  PUBLISHED: 'Đang hoạt động',
+  ARCHIVED: 'Lưu trữ',
+};
+
 export default function AddTour() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,6 +37,7 @@ export default function AddTour() {
   const [maxGuests,      setMaxGuests]      = useState(12);
   const [destinationId,  setDestinationId]  = useState<number | ''>('');
   const [difficulty,     setDifficulty]     = useState<TourDifficulty>('EASY');
+  const [tourStatus,     setTourStatus]     = useState<TourStatus>('DRAFT');
   const [tourPrice,      setTourPrice]      = useState('');
   const [heroImage,      setHeroImage]      = useState('');
   const [bentoImages,    setBentoImages]    = useState(['', '', '', '']);
@@ -67,6 +74,7 @@ export default function AddTour() {
       setDurationNights(tour.durationNights);
       setMaxGuests(tour.maxGuests);
       setDifficulty(tour.difficulty);
+      setTourStatus(tour.status);
       setTourPrice(String(tour.pricePerPerson));
       setHeroImage(tour.coverImageUrl || '');
       setDestinationId(tour.destination.id);
@@ -98,7 +106,7 @@ export default function AddTour() {
   }, [isEdit, id]);
 
   /* ── submit ── */
-  async function handleSubmit(targetStatus: TourStatus) {
+  async function handleSubmit(targetStatus = tourStatus) {
     if (!tourTitle.trim()) { setSaveError('Vui lòng nhập tiêu đề tour'); return; }
     if (!destinationId) { setSaveError('Vui lòng chọn điểm đến'); return; }
     if (!tourPrice || Number(tourPrice) <= 0) { setSaveError('Vui lòng nhập giá hợp lệ'); return; }
@@ -257,11 +265,11 @@ export default function AddTour() {
             {saving ? 'Đang lưu…' : 'Lưu nháp'}
           </button>
           <button
-            onClick={() => handleSubmit('PUBLISHED')}
+            onClick={() => handleSubmit(tourStatus)}
             disabled={saving}
             className="px-8 py-2.5 rounded-xl font-bold text-xs text-white signature-gradient shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Đang lưu…' : isEdit ? 'Cập nhật Tour' : 'Xuất bản Tour'}
+            {saving ? 'Đang lưu…' : isEdit ? 'Lưu thay đổi' : 'Lưu Tour'}
           </button>
         </div>
       </header>
@@ -292,8 +300,8 @@ export default function AddTour() {
                   />
                 </div>
 
-                {/* Destination + Difficulty */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Destination + Difficulty + Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
                       Điểm đến <span className="text-error">*</span>
@@ -320,6 +328,20 @@ export default function AddTour() {
                     >
                       {(Object.keys(DIFFICULTY_LABEL) as TourDifficulty[]).map(d => (
                         <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
+                      Trạng thái <span className="text-error">*</span>
+                    </label>
+                    <select
+                      value={tourStatus}
+                      onChange={e => setTourStatus(e.target.value as TourStatus)}
+                      className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary/20 outline-none"
+                    >
+                      {(Object.keys(TOUR_STATUS_LABEL) as TourStatus[]).map(status => (
+                        <option key={status} value={status}>{TOUR_STATUS_LABEL[status]}</option>
                       ))}
                     </select>
                   </div>
