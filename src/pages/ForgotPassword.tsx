@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_LOGO } from '../constants';
 import { forgotPassword } from '../api/auth';
@@ -9,7 +10,7 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);

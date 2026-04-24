@@ -1,23 +1,165 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { BRAND_NAME } from '../constants';
+import {
+  getAdminTour,
+  createAdminTour,
+  updateAdminTour,
+  listAdminDestinations,
+  type SaveTourRequest,
+} from '../api/admin';
+import type { TourDifficulty, TourStatus } from '../api/tours';
+import type { Destination } from '../api/destinations';
+
+const DIFFICULTY_LABEL: Record<TourDifficulty, string> = {
+  EASY: 'Dễ',
+  MEDIUM: 'Trung bình',
+  HARD: 'Khó',
+};
 
 export default function AddTour() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const isEdit = Boolean(id);
+
+  /* ── form state ── */
+  const [tourTitle,      setTourTitle]      = useState('');
+  const [description,    setDescription]    = useState('');
+  const [durationDays,   setDurationDays]   = useState(1);
+  const [durationNights, setDurationNights] = useState(0);
+  const [maxGuests,      setMaxGuests]      = useState(12);
+  const [destinationId,  setDestinationId]  = useState<number | ''>('');
+  const [difficulty,     setDifficulty]     = useState<TourDifficulty>('EASY');
+  const [tourPrice,      setTourPrice]      = useState('');
+  const [heroImage,      setHeroImage]      = useState('');
+  const [bentoImages,    setBentoImages]    = useState(['', '', '', '']);
 
   const [itinerary, setItinerary] = useState([
     { id: 1, dayTitle: '', activities: [{ id: 1, time: '08:00', desc: '' }, { id: 2, time: '10:00', desc: '' }], images: [''] },
-    { id: 2, dayTitle: '', activities: [{ id: 3, time: '09:00', desc: '' }], images: [] }
+    { id: 2, dayTitle: '', activities: [{ id: 3, time: '09:00', desc: '' }], images: [] },
   ]);
 
-  const [heroImage, setHeroImage] = useState('');
-  const [bentoImages, setBentoImages] = useState(['', '', '', '']);
-  const [tourTitle, setTourTitle] = useState('');
-  const [tourDuration, setTourDuration] = useState('');
-  const [tourPrice, setTourPrice] = useState('');
+  const [inclusions, setInclusions] = useState([
+    { id: 1, text: '', type: 'included' as 'included' | 'excluded' },
+  ]);
 
+  /* ── UI state ── */
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [saving,        setSaving]        = useState(false);
+  const [saveError,     setSaveError]     = useState<string | null>(null);
+  const [destinations,  setDestinations]  = useState<Destination[]>([]);
+
+  /* ── load destinations for dropdown ── */
+  useEffect(() => {
+    listAdminDestinations({ size: 200 })
+      .then(res => setDestinations(res.content))
+      .catch(() => {});
+  }, []);
+
+  /* ── load tour data in edit mode ── */
+  useEffect(() => {
+    if (!isEdit || !id) return;
+    getAdminTour(Number(id)).then(tour => {
+      setTourTitle(tour.title);
+      setDescription(tour.description || '');
+      setDurationDays(tour.durationDays);
+      setDurationNights(tour.durationNights);
+      setMaxGuests(tour.maxGuests);
+      setDifficulty(tour.difficulty);
+      setTourPrice(String(tour.pricePerPerson));
+      setHeroImage(tour.coverImageUrl || '');
+      setDestinationId(tour.destination.id);
+      const gallery = tour.galleryImages?.slice(0, 4).map(g => g.imageUrl) ?? [];
+      setBentoImages([...gallery, ...Array(4).fill('')].slice(0, 4));
+      setItinerary(
+        tour.itineraryDays.length > 0
+          ? tour.itineraryDays.map(day => ({
+              id: day.id,
+              dayTitle: day.title,
+              activities: day.activities.map(act => ({
+                id: act.id,
+                time: act.activityTime.substring(0, 5),
+                desc: act.description,
+              })),
+              images: [day.coverImageUrl || ''].filter(Boolean),
+            }))
+          : itinerary,
+      );
+      if (tour.inclusions.length > 0) {
+        setInclusions(tour.inclusions.map(inc => ({
+          id: inc.id,
+          text: inc.description,
+          type: (inc.type === 'INCLUDE' ? 'included' : 'excluded') as 'included' | 'excluded',
+        })));
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, id]);
+
+  /* ── submit ── */
+  async function handleSubmit(targetStatus: TourStatus) {
+    if (!tourTitle.trim()) { setSaveError('Vui lòng nhập tiêu đề tour'); return; }
+    if (!destinationId) { setSaveError('Vui lòng chọn điểm đến'); return; }
+    if (!tourPrice || Number(tourPrice) <= 0) { setSaveError('Vui lòng nhập giá hợp lệ'); return; }
+
+    setSaving(true);
+    setSaveError(null);
+
+    const payload: SaveTourRequest = {
+      destinationId: Number(destinationId),
+      title: tourTitle.trim(),
+      description: description || null,
+      durationDays,
+      durationNights,
+      maxGuests,
+      difficulty,
+      pricePerPerson: Number(tourPrice),
+      coverImageUrl: heroImage || null,
+      status: targetStatus,
+      galleryImages: bentoImages
+        .filter(url => url.trim())
+        .map((url, i) => ({ imageUrl: url, sortOrder: i })),
+      highlights: [],
+      inclusions: inclusions
+        .filter(inc => inc.text.trim())
+        .map((inc, i) => ({
+          type: inc.type === 'included' ? 'INCLUDE' : 'EXCLUDE',
+          description: inc.text,
+          sortOrder: i,
+        })),
+      itineraryDays: itinerary.map((day, i) => ({
+        dayNumber: i + 1,
+        title: day.dayTitle || `Ngày ${i + 1}`,
+        summary: null,
+        coverImageUrl: day.images[0] || null,
+        activities: day.activities
+          .filter(act => act.desc.trim())
+          .map((act, j) => ({
+            activityTime: act.time + ':00',
+            title: null,
+            description: act.desc,
+            sortOrder: j,
+          })),
+      })),
+    };
+
+    try {
+      if (isEdit && id) {
+        await updateAdminTour(Number(id), payload);
+      } else {
+        await createAdminTour(payload);
+      }
+      navigate('/admin/tours');
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setSaveError(msg ?? 'Lưu thất bại, vui lòng thử lại');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /* ── itinerary helpers ── */
   const updateBentoImage = (index: number, url: string) => {
     const newImages = [...bentoImages];
     newImages[index] = url;
@@ -41,12 +183,6 @@ export default function AddTour() {
     newItinerary[dayIndex].images[imgIndex] = url;
     setItinerary(newItinerary);
   };
-
-  const [inclusions, setInclusions] = useState([
-    { id: 1, text: '', type: 'included' as 'included' | 'excluded' }
-  ]);
-
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const addInclusion = (type: 'included' | 'excluded') => {
     setInclusions([...inclusions, { id: Date.now(), text: '', type }]);
@@ -84,6 +220,8 @@ export default function AddTour() {
     setItinerary(itinerary.filter(day => day.id !== id));
   };
 
+  const durationDisplay = durationDays > 0 ? `${durationDays} ngày ${durationNights} đêm` : '— Ngày';
+
   return (
     <div className="flex-1 min-h-screen bg-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
       {/* Header */}
@@ -98,38 +236,53 @@ export default function AddTour() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          {saveError && (
+            <span className="text-xs font-bold text-error bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 max-w-xs truncate">
+              {saveError}
+            </span>
+          )}
+          <button
             onClick={() => setIsPreviewOpen(!isPreviewOpen)}
             className="px-5 py-2.5 rounded-xl font-bold text-xs text-primary bg-primary/5 hover:bg-primary/10 transition-all flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-sm">{isPreviewOpen ? 'visibility_off' : 'visibility'}</span>
             {isPreviewOpen ? 'Ẩn Xem trước' : 'Xem trước'}
           </button>
-          <div className="w-px h-6 bg-surface-container-low mx-1"></div>
-          <button className="px-6 py-2.5 rounded-xl font-bold text-xs text-on-surface-variant hover:bg-surface-container-high transition-all">
-            Lưu nháp
+          <div className="w-px h-6 bg-surface-container-low mx-1" />
+          <button
+            onClick={() => handleSubmit('DRAFT')}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-xl font-bold text-xs text-on-surface-variant hover:bg-surface-container-high transition-all disabled:opacity-50"
+          >
+            {saving ? 'Đang lưu…' : 'Lưu nháp'}
           </button>
-          <button className="px-8 py-2.5 rounded-xl font-bold text-xs text-white signature-gradient shadow-lg shadow-primary/20 active:scale-95 transition-all">
-            {isEdit ? 'Cập nhật Tour' : 'Xuất bản Tour'}
+          <button
+            onClick={() => handleSubmit('PUBLISHED')}
+            disabled={saving}
+            className="px-8 py-2.5 rounded-xl font-bold text-xs text-white signature-gradient shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Đang lưu…' : isEdit ? 'Cập nhật Tour' : 'Xuất bản Tour'}
           </button>
         </div>
       </header>
 
       <div className="p-8 max-w-[1400px] mx-auto w-full">
         <div className={`grid gap-8 transition-all duration-500 ${isPreviewOpen ? 'grid-cols-1 lg:grid-cols-[1fr_380px]' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
-          
+
           {/* Main Form Column */}
           <div className="space-y-8">
-            
+
             {/* Basic Info Section */}
             <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
               <h3 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2 text-on-surface">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                 Thông tin cơ bản
               </h3>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Tiêu đề Chuyến đi</label>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
+                    Tiêu đề Chuyến đi <span className="text-error">*</span>
+                  </label>
                   <input
                     className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 text-on-surface font-bold text-base placeholder:text-slate-400 focus:ring-1 focus:ring-primary/20 transition-all outline-none"
                     placeholder="ví dụ: Vịnh Sapphire của Na Uy"
@@ -138,11 +291,47 @@ export default function AddTour() {
                     onChange={(e) => setTourTitle(e.target.value)}
                   />
                 </div>
+
+                {/* Destination + Difficulty */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
+                      Điểm đến <span className="text-error">*</span>
+                    </label>
+                    <select
+                      value={destinationId}
+                      onChange={e => setDestinationId(e.target.value ? Number(e.target.value) : '')}
+                      className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary/20 outline-none"
+                    >
+                      <option value="">Chọn điểm đến…</option>
+                      {destinations.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
+                      Độ khó <span className="text-error">*</span>
+                    </label>
+                    <select
+                      value={difficulty}
+                      onChange={e => setDifficulty(e.target.value as TourDifficulty)}
+                      className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary/20 outline-none"
+                    >
+                      {(Object.keys(DIFFICULTY_LABEL) as TourDifficulty[]).map(d => (
+                        <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Mô tả chi tiết</label>
                   <textarea
                     className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface leading-normal text-sm placeholder:text-slate-400 focus:ring-1 focus:ring-primary/20 transition-all outline-none min-h-[160px] resize-none font-medium"
                     placeholder="Mô tả linh hồn của hành trình này..."
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
                   />
                 </div>
               </div>
@@ -151,7 +340,7 @@ export default function AddTour() {
             {/* Tour Listing Display Section */}
             <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
               <h3 className="text-lg font-black tracking-tight mb-2 flex items-center gap-2 text-on-surface">
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
                 Hiển thị trên danh sách tour
               </h3>
               <p className="text-xs text-on-surface-variant mb-6 font-medium">Các trường này quyết định cách tour hiển thị trên trang tìm kiếm và trang chủ.</p>
@@ -168,16 +357,49 @@ export default function AddTour() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Thời gian (hiển thị card)</label>
-                  <input type="text" placeholder="VD: 5 ngày 4 đêm" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" value={tourDuration} onChange={(e) => setTourDuration(e.target.value)} />
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
+                    Giá từ (VND) <span className="text-error">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="VD: 24000000"
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                    value={tourPrice}
+                    onChange={(e) => setTourPrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Số ngày</label>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="VD: 5"
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(Math.max(1, Number(e.target.value)))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Số đêm</label>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="VD: 4"
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                    value={durationNights}
+                    onChange={(e) => setDurationNights(Math.max(0, Number(e.target.value)))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Số khách tối đa</label>
-                  <input type="number" placeholder="VD: 12" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Giá từ (VND)</label>
-                  <input type="number" placeholder="VD: 24000000" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" value={tourPrice} onChange={(e) => setTourPrice(e.target.value)} />
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="VD: 12"
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                    value={maxGuests}
+                    onChange={(e) => setMaxGuests(Math.max(1, Number(e.target.value)))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Giá gốc (để gạch ngang, nếu có)</label>
@@ -214,13 +436,13 @@ export default function AddTour() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-on-surface">
-                    <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
                     Gallery hiển thị ở trang chi tiết tour
                   </h3>
                   <p className="text-xs text-on-surface-variant mt-1 font-medium">Bố cục bento: 1 ảnh chính lớn bên trái và 4 ảnh phụ bên phải — đây là gallery hiển thị trên trang công khai.</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-auto md:h-[400px]">
                 {/* Hero Image */}
                 <div className="md:col-span-8 relative group rounded-2xl overflow-hidden border-2 border-dashed border-outline-variant/30 hover:border-primary/40 transition-all bg-surface-container-low/50 flex flex-col items-center justify-center">
@@ -228,9 +450,9 @@ export default function AddTour() {
                     <>
                       <img src={heroImage} alt="Hero" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                       <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                        <input 
-                          className="w-full bg-white/10 backdrop-blur-md border-none rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/50 focus:ring-1 focus:ring-white outline-none" 
-                          placeholder="Thay đổi URL Ảnh chính..." 
+                        <input
+                          className="w-full bg-white/10 backdrop-blur-md border-none rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/50 focus:ring-1 focus:ring-white outline-none"
+                          placeholder="Thay đổi URL Ảnh chính..."
                           value={heroImage}
                           onChange={(e) => setHeroImage(e.target.value)}
                         />
@@ -245,9 +467,9 @@ export default function AddTour() {
                         <span className="material-symbols-outlined text-2xl text-primary">add_photo_alternate</span>
                       </div>
                       <p className="text-sm font-black text-on-surface tracking-tight mb-3">Tải ảnh chính (Hero)</p>
-                      <input 
-                        className="w-full bg-white/80 border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none text-center shadow-sm" 
-                        placeholder="Dán URL ảnh vào đây..." 
+                      <input
+                        className="w-full bg-white/80 border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none text-center shadow-sm"
+                        placeholder="Dán URL ảnh vào đây..."
                         value={heroImage}
                         onChange={(e) => setHeroImage(e.target.value)}
                       />
@@ -263,9 +485,9 @@ export default function AddTour() {
                         <>
                           <img src={img} alt={`Grid ${idx+1}`} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                           <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                            <input 
-                              className="w-full bg-white/10 backdrop-blur-md border-none rounded-md px-2 py-1 text-[10px] text-white placeholder:text-white/50 focus:ring-1 focus:ring-white outline-none" 
-                              placeholder="Thay URL..." 
+                            <input
+                              className="w-full bg-white/10 backdrop-blur-md border-none rounded-md px-2 py-1 text-[10px] text-white placeholder:text-white/50 focus:ring-1 focus:ring-white outline-none"
+                              placeholder="Thay URL..."
                               value={img}
                               onChange={(e) => updateBentoImage(idx, e.target.value)}
                             />
@@ -278,9 +500,9 @@ export default function AddTour() {
                         <div className="text-center p-2 w-full">
                           <span className="material-symbols-outlined text-xl text-slate-400 mb-1">image</span>
                           <p className="text-[10px] font-bold text-slate-500 mb-2">Ảnh {idx+1}</p>
-                          <input 
-                            className="w-full bg-white/80 border-none rounded-md px-2 py-1 text-[9px] focus:ring-1 focus:ring-primary outline-none shadow-sm" 
-                            placeholder="Dán URL..." 
+                          <input
+                            className="w-full bg-white/80 border-none rounded-md px-2 py-1 text-[9px] focus:ring-1 focus:ring-primary outline-none shadow-sm"
+                            placeholder="Dán URL..."
                             value={img}
                             onChange={(e) => updateBentoImage(idx, e.target.value)}
                           />
@@ -296,7 +518,7 @@ export default function AddTour() {
             <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-on-surface">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
                   Lịch trình chi tiết
                 </h3>
                 <button
@@ -317,7 +539,6 @@ export default function AddTour() {
                         </div>
                       </div>
                       <div className="flex-1 space-y-4">
-                        {/* Day title */}
                         <input
                           className="w-full bg-transparent border-none text-base font-black tracking-tight p-0 focus:ring-0 placeholder:text-slate-300 transition-all outline-none"
                           placeholder="Tóm tắt ngày (VD: Đà Lạt – Khởi hành & Check-in)..."
@@ -329,8 +550,6 @@ export default function AddTour() {
                             setItinerary(newItinerary);
                           }}
                         />
-
-                        {/* Activities list */}
                         <div className="space-y-2 border-l-2 border-surface-container-high pl-4 ml-2">
                           {day.activities.map((act) => (
                             <div key={act.id} className="flex gap-3 items-center group/act">
@@ -358,8 +577,6 @@ export default function AddTour() {
                             </div>
                           ))}
                         </div>
-
-                        {/* Add activity button */}
                         <button
                           onClick={() => addActivityToDay(index)}
                           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
@@ -367,8 +584,6 @@ export default function AddTour() {
                           <span className="material-symbols-outlined text-xs">add</span>
                           Thêm hoạt động trong ngày
                         </button>
-
-                        {/* Day Images */}
                         <div className="pt-4 border-t border-surface-container-low/50">
                           <div className="flex justify-between items-center mb-4">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hình ảnh ngày {index + 1}</label>
@@ -425,12 +640,10 @@ export default function AddTour() {
             {/* Inclusions & Exclusions */}
             <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
               <h3 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2 text-on-surface">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Bao gồm & Không bao gồm
               </h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Included */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs text-emerald-600 uppercase tracking-widest flex items-center gap-2">
@@ -442,8 +655,8 @@ export default function AddTour() {
                   <div className="space-y-2">
                     {inclusions.filter(inc => inc.type === 'included').map((inc) => (
                       <div key={inc.id} className="flex gap-2 group">
-                        <input 
-                          className="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-2.5 text-xs font-medium focus:ring-1 focus:ring-emerald-500/20 outline-none" 
+                        <input
+                          className="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-2.5 text-xs font-medium focus:ring-1 focus:ring-emerald-500/20 outline-none"
                           placeholder="VD: Phòng nghỉ sang trọng..."
                           value={inc.text}
                           onChange={(e) => {
@@ -460,8 +673,6 @@ export default function AddTour() {
                     ))}
                   </div>
                 </div>
-
-                {/* Excluded */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs text-red-600 uppercase tracking-widest flex items-center gap-2">
@@ -473,8 +684,8 @@ export default function AddTour() {
                   <div className="space-y-2">
                     {inclusions.filter(inc => inc.type === 'excluded').map((inc) => (
                       <div key={inc.id} className="flex gap-2 group">
-                        <input 
-                          className="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-2.5 text-xs font-medium focus:ring-1 focus:ring-red-500/20 outline-none" 
+                        <input
+                          className="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-2.5 text-xs font-medium focus:ring-1 focus:ring-red-500/20 outline-none"
                           placeholder="VD: Đồ uống tự gọi..."
                           value={inc.text}
                           onChange={(e) => {
@@ -498,7 +709,7 @@ export default function AddTour() {
             <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-on-surface">
-                  <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
                   Góc đánh giá
                 </h3>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-low rounded-lg text-[10px] font-bold">
@@ -506,7 +717,6 @@ export default function AddTour() {
                   4.9 (128)
                 </div>
               </div>
-              
               <div className="overflow-x-auto rounded-xl border border-surface-container-low">
                 <table className="w-full text-left">
                   <thead className="bg-surface-container-low font-black text-[10px] uppercase tracking-widest text-slate-500">
@@ -520,9 +730,9 @@ export default function AddTour() {
                   </thead>
                   <tbody className="divide-y divide-surface-container-low text-xs">
                     {[
-                      { name: 'Lê Minh Anh', rating: 5, comment: 'Trải nghiệm tuyệt vời, HDV rất nhiệt tình!', status: 'approved' },
-                      { name: 'David Wilson', rating: 4, comment: 'Magical bay, stunning views and great food.', status: 'pending' },
-                      { name: 'Nguyễn Hà Linh', rating: 5, comment: 'Chuyến đi đáng nhớ nhất trong năm.', status: 'hidden' },
+                      { name: 'Lê Minh Anh',   rating: 5, comment: 'Trải nghiệm tuyệt vời, HDV rất nhiệt tình!',    status: 'approved' },
+                      { name: 'David Wilson',   rating: 4, comment: 'Magical bay, stunning views and great food.',   status: 'pending'  },
+                      { name: 'Nguyễn Hà Linh', rating: 5, comment: 'Chuyến đi đáng nhớ nhất trong năm.',           status: 'hidden'   },
                     ].map((review, i) => (
                       <tr key={i} className="hover:bg-surface-container-low/20 transition-colors">
                         <td className="px-5 py-4 font-bold">{review.name}</td>
@@ -564,23 +774,22 @@ export default function AddTour() {
           {/* Secondary Config Column (Preview) */}
           <AnimatePresence>
             {isPreviewOpen && (
-              <motion.aside 
+              <motion.aside
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 className="hidden lg:block space-y-6"
               >
                 <div className="sticky top-28 space-y-6">
-                  {/* Category Selection */}
                   <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
                     <h3 className="text-sm font-black tracking-tight mb-4 text-on-surface uppercase tracking-widest">Danh mục</h3>
                     <div className="flex flex-wrap gap-2">
-                       {['Phiêu lưu', 'Sang trọng', 'Văn hóa', 'Sức khỏe'].map((cat, i) => (
-                        <button 
+                      {['Phiêu lưu', 'Sang trọng', 'Văn hóa', 'Sức khỏe'].map((cat, i) => (
+                        <button
                           key={i}
                           className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                            cat === 'Phiêu lưu' 
-                              ? 'bg-primary text-white shadow-lg shadow-primary/10' 
+                            cat === 'Phiêu lưu'
+                              ? 'bg-primary text-white shadow-lg shadow-primary/10'
                               : 'bg-surface-container-high text-on-surface-variant hover:bg-slate-200'
                           }`}
                         >
@@ -592,14 +801,13 @@ export default function AddTour() {
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="w-10 h-5 rounded-full bg-slate-200 relative transition-all group-has-[:checked]:bg-primary">
                           <input checked type="checkbox" className="sr-only peer" />
-                          <div className="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-all peer-checked:left-5.5 shadow-sm"></div>
+                          <div className="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-all peer-checked:left-5.5 shadow-sm" />
                         </div>
                         <span className="text-xs font-bold text-on-surface-variant">Chuyến đi nổi bật</span>
                       </label>
                     </div>
                   </section>
 
-                  {/* Preview Card */}
                   <section className="p-6 rounded-[2rem] bg-indigo-900 text-white overflow-hidden relative shadow-2xl shadow-indigo-900/20 group">
                     <div className="absolute -top-6 -right-6 p-4 opacity-5">
                       <span className="material-symbols-outlined text-[100px]" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
@@ -613,8 +821,8 @@ export default function AddTour() {
                         {tourTitle || <span className="opacity-40 italic font-normal text-sm">Tiêu đề tour sẽ hiện ở đây...</span>}
                       </h4>
                       <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-blue-100/60">
-                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">schedule</span> {tourDuration || '— Ngày'}</span>
-                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">payments</span> {tourPrice ? parseInt(tourPrice).toLocaleString('vi-VN') + '₫' : '—'}</span>
+                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">schedule</span>{durationDisplay}</span>
+                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">payments</span>{tourPrice ? Number(tourPrice).toLocaleString('vi-VN') + '₫' : '—'}</span>
                       </div>
                     </div>
                   </section>
@@ -624,40 +832,6 @@ export default function AddTour() {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="w-full bg-slate-50 border-t border-surface-container-low mx-auto">
-        <div className="max-w-[1400px] mx-auto px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div className="col-span-1 md:col-span-1">
-            <h3 className="text-lg font-black tracking-tighter text-blue-900 mb-4">{BRAND_NAME}</h3>
-            <p className="text-xs leading-relaxed text-slate-500 font-light italic">"Defined by Discovery, Crafted by Curators."</p>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900">Liên kết nhanh</h4>
-            <ul className="space-y-3 text-xs font-bold text-slate-500">
-              <li><Link className="hover:text-primary transition-colors" to="/admin/tours">Danh sách Tour</Link></li>
-              <li><Link className="hover:text-primary transition-colors" to="/admin/orders">Đơn hàng mới</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900">Hỗ trợ kỹ thuật</h4>
-            <ul className="space-y-3 text-xs font-bold text-slate-500">
-              <li><Link className="hover:text-primary transition-colors" to="#">Tài liệu hướng dẫn</Link></li>
-              <li><Link className="hover:text-primary transition-colors" to="#">Gửi yêu cầu giúp đỡ</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900">Hệ thống</h4>
-            <div className="flex items-center gap-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-xs font-bold text-slate-500">Toàn bộ máy chủ hoạt động tốt</span>
-            </div>
-          </div>
-        </div>
-        <div className="px-8 py-6 border-t border-surface-container-low flex justify-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">© 2026 {BRAND_NAME} Admin. Professional Edition.</p>
-        </div>
-      </footer>
     </div>
   );
 }

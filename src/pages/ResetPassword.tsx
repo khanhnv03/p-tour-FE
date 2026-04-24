@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BRAND_LOGO } from '../constants';
 import { resetPassword } from '../api/auth';
@@ -13,7 +14,7 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
     if (newPassword !== confirm) {

@@ -8,8 +8,17 @@ export interface Destination {
   coverImageUrl: string | null;
   country: string | null;
   region: string | null;
-  isFeatured: boolean;
+  featured: boolean;
   tourCount: number;
+}
+
+export interface SaveDestinationRequest {
+  name: string;
+  description?: string | null;
+  coverImageUrl?: string | null;
+  country?: string | null;
+  region?: string | null;
+  featured: boolean;
 }
 
 export async function getFeaturedDestinations(): Promise<Destination[]> {
