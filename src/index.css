@@ -44,4 +44,8 @@
   .signature-gradient { background: linear-gradient(135deg, #004e9f 0%, #0066cc 100%); }
   .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .input-base { @apply w-full bg-surface-container-low rounded-xl px-4 py-3.5 text-on-surface font-semibold text-sm outline-none border-none focus:ring-2 focus:ring-primary/20 transition-all; }
+  .btn-primary { @apply text-white px-8 py-2.5 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-60; background: linear-gradient(135deg, #004e9f 0%, #0066cc 100%); }
+  .settings-input { @apply w-full bg-gray-50 border border-black/6 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 font-medium outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all; }
+  .settings-btn-primary { @apply text-white px-6 py-2 rounded-lg font-semibold text-sm shadow hover:shadow-md transition-all active:scale-95 disabled:opacity-60; background: linear-gradient(135deg, #004e9f 0%, #0066cc 100%); }
 }

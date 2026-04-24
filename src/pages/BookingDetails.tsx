@@ -19,7 +19,7 @@ export default function BookingDetails() {
           <h1 className="text-3xl font-black tracking-tight text-on-surface">Chi tiết Đặt chỗ</h1>
           <p className="text-on-surface-variant font-medium mt-2">Mã tham chiếu: <span className="font-mono text-primary bg-primary/10 px-2 py-0.5 rounded ml-1">#{id || 'BK-1934'}</span></p>
         </div>
-        <div className="inline-flex items-center bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 px-4 py-2 rounded-xl font-bold text-sm shadow-sm w-fit">
+        <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-xl font-bold text-sm shadow-sm w-fit">
           <span className="material-symbols-outlined text-sm mr-2">check_circle</span>
           Đã thanh toán (Hoàn tất)
         </div>
@@ -46,17 +46,17 @@ export default function BookingDetails() {
             <h4 className="text-lg font-black text-on-surface mb-6">Thông tin Dịch vụ</h4>
             <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-[19px] before:w-[2px] before:bg-surface-container-high ml-2">
               <div className="relative pl-12 -ml-2">
-                <div className="absolute left-0 top-0.5 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-black shadow-sm ring-4 ring-white dark:ring-slate-900">1</div>
+                <div className="absolute left-0 top-0.5 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-black shadow-sm ring-4 ring-white">1</div>
                 <h5 className="font-bold text-on-surface">Khởi hành</h5>
                 <p className="text-sm text-on-surface-variant mt-1">06:00 AM - Sân bay Tân Sơn Nhất, Cổng D2</p>
               </div>
               <div className="relative pl-12 -ml-2">
-                <div className="absolute left-0 top-0.5 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-black shadow-sm ring-4 ring-white dark:ring-slate-900">2</div>
+                <div className="absolute left-0 top-0.5 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-black shadow-sm ring-4 ring-white">2</div>
                 <h5 className="font-bold text-on-surface">Lưu trú</h5>
                 <p className="text-sm text-on-surface-variant mt-1">Swiss-Belresort Tuyen Lam (4 đêm)</p>
               </div>
               <div className="relative pl-12 -ml-2">
-                <div className="absolute left-0 top-0.5 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-black shadow-sm ring-4 ring-white dark:ring-slate-900">3</div>
+                <div className="absolute left-0 top-0.5 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-black shadow-sm ring-4 ring-white">3</div>
                 <h5 className="font-bold text-on-surface">Hướng dẫn viên</h5>
                 <p className="text-sm text-on-surface-variant mt-1">Trần Quang (Chuyên gia leo núi/Cứu hộ)</p>
               </div>

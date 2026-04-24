@@ -194,7 +194,7 @@ export default function ManageTours() {
               <span className="material-symbols-outlined text-primary text-base group-hover:scale-110 transition-transform">trending_up</span>
             </div>
           </div>
-          <div className="bg-slate-900 text-white p-6 rounded-2xl flex flex-col justify-between h-32 shadow-xl shadow-slate-900/10">
+          <div className="primary-gradient text-white p-6 rounded-2xl flex flex-col justify-between h-32 shadow-xl shadow-primary/20">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hiệu suất vận hành</span>
             <span className="text-3xl font-black tracking-tight mt-auto">84.2%</span>
           </div>

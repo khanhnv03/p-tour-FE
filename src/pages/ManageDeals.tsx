@@ -94,8 +94,8 @@ export default function ManageDeals() {
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mã đã sử dụng</span>
             <span className="text-3xl font-black text-on-surface tracking-tight mt-auto">165</span>
           </div>
-          <div className="bg-slate-900 text-white p-6 rounded-2xl flex flex-col justify-between h-32 shadow-xl shadow-slate-900/10">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Doanh thu tác động</span>
+          <div className="primary-gradient text-white p-6 rounded-2xl flex flex-col justify-between h-32 shadow-xl shadow-primary/20">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Doanh thu tác động</span>
             <span className="text-3xl font-black tracking-tight mt-auto">+12.4%</span>
           </div>
         </div>

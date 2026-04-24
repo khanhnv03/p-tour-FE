@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BRAND_NAME, BRAND_LOGO, BRAND_FOOTER_DESC } from '../constants';
+import { BRAND_NAME, BRAND_FOOTER_DESC } from '../constants';
+import UserNavbar from '../components/UserNavbar';
 
 const TODAY = new Date('2026-04-22');
 
@@ -60,27 +61,7 @@ export default function Deals() {
 
   return (
     <div className="bg-surface text-on-surface font-sans selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen flex flex-col">
-      {/* TopNavBar */}
-      <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">
-        <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto font-medium tracking-tight">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={BRAND_LOGO} alt="PTIT Logo" className="h-10 w-auto" />
-            <div className="text-xl font-black tracking-tighter text-blue-900 dark:text-blue-50">
-              {BRAND_NAME}
-            </div>
-          </Link>
-          <div className="hidden md:flex items-center space-x-8">
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/">Điểm đến</Link>
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/tours">Tour</Link>
-            <Link className="text-blue-700 dark:text-blue-400 font-bold border-b-2 border-blue-700 dark:border-blue-400 pb-1" to="/deals">Ưu đãi</Link>
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/journal">Nhật ký</Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/login" className="px-5 py-2 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100/50 rounded-lg transition-all active:scale-95">Đăng nhập</Link>
-            <Link to="/login" className="px-6 py-2.5 signature-gradient text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform">Đăng ký</Link>
-          </div>
-        </div>
-      </nav>
+      <UserNavbar />
 
       <main className="max-w-7xl mx-auto px-8 py-12 flex-grow">
         {/* Editorial Header */}

@@ -1,57 +1,90 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BRAND_NAME, BRAND_LOGO, BRAND_FOOTER_DESC } from '../constants';
+import { BRAND_NAME, BRAND_FOOTER_DESC } from '../constants';
+import UserNavbar from '../components/UserNavbar';
+import { searchTours, type TourSummary, type TourDifficulty } from '../api/tours';
+import { listDestinations, type Destination } from '../api/destinations';
 
-const DURATION_OPTIONS = ['1-3 Ngày', '4-7 Ngày', '8-14 Ngày', 'Trên 14 Ngày'];
-const RESULT_COUNTS: Record<string, number> = {
-  '1-3 Ngày': 3, '4-7 Ngày': 4, '8-14 Ngày': 3, 'Trên 14 Ngày': 2,
-};
+const fmt = (n: number) => n.toLocaleString('vi-VN') + '₫';
+const PAGE_SIZE = 9;
+const MAX_PRICE = 100_000_000;
+
+const SORT_OPTIONS = [
+  { label: 'Phổ biến', value: 'bookingCount,desc' },
+  { label: 'Giá thấp', value: 'pricePerPerson,asc' },
+  { label: 'Xếp hạng cao', value: 'rating,desc' },
+];
+
+const DIFFICULTY_OPTIONS: { label: string; value: TourDifficulty }[] = [
+  { label: 'Dễ', value: 'EASY' },
+  { label: 'Trung bình', value: 'MEDIUM' },
+  { label: 'Khó', value: 'HARD' },
+];
 
 export default function TourSearch() {
   const [searchParams] = useSearchParams();
-  const initialDestination = searchParams.get('destination') || '';
-  const initialDate = searchParams.get('date') || '';
-  const initialGuests = searchParams.get('guests') || '';
+  const urlKeyword = searchParams.get('keyword') || searchParams.get('destination') || '';
 
+  const [tours, setTours] = useState<TourSummary[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [selectedDestinationId, setSelectedDestinationId] = useState<number | ''>('');
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
+  const [minRating, setMinRating] = useState<number | undefined>();
+  const [difficulty, setDifficulty] = useState<TourDifficulty | undefined>();
+  const [sort, setSort] = useState('bookingCount,desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
-  const [selectedDestination, setSelectedDestination] = useState(initialDestination);
-  const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [selectedGuests, setSelectedGuests] = useState(initialGuests);
-  const [selectedSort, setSelectedSort] = useState('Phổ biến');
+
+  useEffect(() => {
+    listDestinations({ size: 100 }).then(res => setDestinations(res.content)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    searchTours({
+      keyword: urlKeyword || undefined,
+      destinationId: selectedDestinationId !== '' ? (selectedDestinationId as number) : undefined,
+      maxPrice: maxPrice < MAX_PRICE ? maxPrice : undefined,
+      minRating,
+      difficulty,
+      sort,
+      page,
+      size: PAGE_SIZE,
+    })
+      .then(res => {
+        setTours(res.content);
+        setTotalElements(res.totalElements);
+        setTotalPages(Math.max(1, res.totalPages));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [urlKeyword, selectedDestinationId, maxPrice, minRating, difficulty, sort, page]);
+
+  function changeFilter<T>(setter: (v: T) => void, value: T) {
+    setter(value);
+    setPage(0);
+  }
 
   const activeFilters: { label: string; onRemove: () => void }[] = [];
-  if (selectedDestination) activeFilters.push({ label: `Điểm đến: ${selectedDestination}`, onRemove: () => setSelectedDestination('') });
-  if (selectedDuration) activeFilters.push({ label: `Thời gian: ${selectedDuration}`, onRemove: () => setSelectedDuration(null) });
-  if (selectedDate) activeFilters.push({ label: `Ngày: ${selectedDate}`, onRemove: () => setSelectedDate('') });
-  if (selectedGuests) activeFilters.push({ label: `Số khách: ${selectedGuests}`, onRemove: () => setSelectedGuests('') });
-
-  const resultCount = selectedDuration ? RESULT_COUNTS[selectedDuration] : 9;
-  const resultLabel = activeFilters.length > 0 ? `${resultCount} kết quả phù hợp` : '9 kết quả tìm thấy';
+  if (urlKeyword) activeFilters.push({ label: `Từ khóa: ${urlKeyword}`, onRemove: () => {} });
+  if (selectedDestinationId !== '') {
+    const dest = destinations.find(d => d.id === selectedDestinationId);
+    activeFilters.push({ label: `Điểm đến: ${dest?.name ?? ''}`, onRemove: () => changeFilter(setSelectedDestinationId, '') });
+  }
+  if (maxPrice < MAX_PRICE) activeFilters.push({ label: `Giá tối đa: ${fmt(maxPrice)}`, onRemove: () => changeFilter(setMaxPrice, MAX_PRICE) });
+  if (minRating) activeFilters.push({ label: `Từ ${minRating}★`, onRemove: () => changeFilter(setMinRating, undefined) });
+  if (difficulty) {
+    const d = DIFFICULTY_OPTIONS.find(o => o.value === difficulty);
+    activeFilters.push({ label: `Độ khó: ${d?.label}`, onRemove: () => changeFilter(setDifficulty, undefined) });
+  }
 
   return (
     <div className="bg-surface font-body text-on-surface min-h-screen flex flex-col">
-      {/* TopNavBar */}
-      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">
-        <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={BRAND_LOGO} alt="PTIT Logo" className="h-10 w-auto" />
-            <div className="text-xl font-black tracking-tighter text-blue-900">
-              {BRAND_NAME}
-            </div>
-          </Link>
-          <div className="hidden md:flex items-center space-x-8 font-medium tracking-tight text-slate-600">
-            <Link to="/" className="hover:text-blue-600 transition-colors">Điểm đến</Link>
-            <Link to="/tours" className="text-blue-700 font-bold border-b-2 border-blue-700 pb-1">Tour</Link>
-            <Link to="/deals" className="hover:text-blue-600 transition-colors">Ưu đãi</Link>
-            <Link to="/journal" className="hover:text-blue-600 transition-colors">Nhật ký</Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button className="px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100/50 rounded-lg transition-all active:scale-95">Đăng nhập</button>
-            <button className="px-5 py-2 text-sm font-bold text-white primary-gradient rounded-xl shadow-lg active:scale-95 transition-all">Đăng ký</button>
-          </div>
-        </div>
-      </nav>
+      <UserNavbar />
 
       <main className="flex-grow max-w-7xl mx-auto px-8 py-12 w-full">
         {/* Breadcrumb & Title Section */}
@@ -67,7 +100,9 @@ export default function TourSearch() {
               <p className="text-lg text-outline max-w-xl">Hành trình độc bản được thiết kế riêng cho những tâm hồn khao khát sự khác biệt.</p>
             </div>
             <div className="bg-surface-container-low px-6 py-4 rounded-xl flex items-center gap-4 shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">
-              <span className="text-sm font-bold text-primary uppercase tracking-widest">{resultLabel}</span>
+              <span className="text-sm font-bold text-primary uppercase tracking-widest">
+                {loading ? 'Đang tải...' : `${totalElements} tour tìm thấy`}
+              </span>
             </div>
           </div>
         </header>
@@ -87,13 +122,13 @@ export default function TourSearch() {
                 <div className="relative">
                   <select
                     className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 appearance-none focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                    value={selectedDestination}
-                    onChange={(e) => setSelectedDestination(e.target.value)}
+                    value={selectedDestinationId}
+                    onChange={(e) => changeFilter(setSelectedDestinationId, e.target.value === '' ? '' : Number(e.target.value))}
                   >
                     <option value="">Tất cả điểm đến</option>
-                    <option value="Châu Âu">Châu Âu</option>
-                    <option value="Châu Á">Châu Á</option>
-                    <option value="Châu Mỹ">Châu Mỹ</option>
+                    {destinations.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-3 text-outline pointer-events-none">expand_more</span>
                 </div>
@@ -101,62 +136,76 @@ export default function TourSearch() {
 
               {/* Filter: Price Range */}
               <div className="mb-8">
-                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Thanh kéo giá (VNĐ)</label>
-                <input className="w-full h-1 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary" max="100000000" min="0" type="range" />
+                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Giá tối đa</label>
+                <input
+                  className="w-full h-1 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary"
+                  max={MAX_PRICE}
+                  min="0"
+                  step="1000000"
+                  type="range"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  onMouseUp={() => setPage(0)}
+                />
                 <div className="flex justify-between mt-2 text-xs font-medium text-outline">
                   <span>0đ</span>
-                  <span>100tr+</span>
+                  <span className="text-primary font-bold">{maxPrice < MAX_PRICE ? fmt(maxPrice) : '100tr+'}</span>
                 </div>
               </div>
 
-              {/* Filter: Time */}
+              {/* Filter: Difficulty */}
               <div className="mb-8">
-                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Thời gian</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {DURATION_OPTIONS.map((opt) => (
+                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Độ khó</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {DIFFICULTY_OPTIONS.map((opt) => (
                     <button
-                      key={opt}
-                      onClick={() => setSelectedDuration(selectedDuration === opt ? null : opt)}
+                      key={opt.value}
+                      onClick={() => changeFilter(setDifficulty, difficulty === opt.value ? undefined : opt.value)}
                       className={`px-3 py-2 text-xs font-bold rounded-lg border-2 transition-all ${
-                        selectedDuration === opt
+                        difficulty === opt.value
                           ? 'border-primary text-primary bg-primary/10'
                           : 'border-transparent bg-surface-container-high text-outline hover:border-outline-variant'
                       }`}
                     >
-                      {opt}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Filter: Stars */}
+              {/* Filter: Rating */}
               <div className="mb-8">
-                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Hạng dịch vụ</label>
+                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Đánh giá tối thiểu</label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" />
-                    <span className="flex text-secondary">
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" />
-                    <span className="flex text-secondary">
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="material-symbols-outlined text-surface-dim">star</span>
-                    </span>
-                  </label>
+                  {[5, 4, 3].map(r => (
+                    <label key={r} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                        type="radio"
+                        name="minRating"
+                        checked={minRating === r}
+                        onChange={() => changeFilter(setMinRating, minRating === r ? undefined : r)}
+                      />
+                      <span className="flex text-secondary">
+                        {Array.from({ length: r }).map((_, i) => (
+                          <span key={i} className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        ))}
+                        {Array.from({ length: 5 - r }).map((_, i) => (
+                          <span key={i} className="material-symbols-outlined text-sm text-surface-dim">star</span>
+                        ))}
+                      </span>
+                      <span className="text-xs text-outline">trở lên</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
-              <button className="w-full py-4 bg-on-surface text-white font-bold rounded-xl active:scale-95 transition-all">Áp dụng bộ lọc</button>
+              <button
+                onClick={() => { setSelectedDestinationId(''); setMaxPrice(MAX_PRICE); setMinRating(undefined); setDifficulty(undefined); setPage(0); }}
+                className="w-full py-4 bg-on-surface text-white font-bold rounded-xl active:scale-95 transition-all"
+              >
+                Xóa bộ lọc
+              </button>
             </div>
           </aside>
 
@@ -167,25 +216,25 @@ export default function TourSearch() {
               <div className="flex items-center gap-6">
                 <span className="text-sm font-bold text-outline uppercase tracking-widest">Sắp xếp:</span>
                 <div className="flex gap-4">
-                  {['Phổ biến', 'Giá thấp', 'Xếp hạng cao'].map((sort) => (
+                  {SORT_OPTIONS.map((s) => (
                     <button
-                      key={sort}
-                      onClick={() => setSelectedSort(sort)}
-                      className={`text-sm transition-colors ${selectedSort === sort ? 'font-bold text-primary border-b-2 border-primary' : 'font-semibold text-outline hover:text-on-surface'}`}
+                      key={s.value}
+                      onClick={() => { setSort(s.value); setPage(0); }}
+                      className={`text-sm transition-colors ${sort === s.value ? 'font-bold text-primary border-b-2 border-primary' : 'font-semibold text-outline hover:text-on-surface'}`}
                     >
-                      {sort}
+                      {s.label}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-surface-container-lowest shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] text-primary' : 'text-outline hover:bg-surface-container-highest'}`}
                 >
                   <span className="material-symbols-outlined">grid_view</span>
                 </button>
-                <button 
+                <button
                   onClick={() => setViewMode('list')}
                   className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-surface-container-lowest shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] text-primary' : 'text-outline hover:bg-surface-container-highest'}`}
                 >
@@ -207,7 +256,7 @@ export default function TourSearch() {
                   </span>
                 ))}
                 <button
-                  onClick={() => { setSelectedDuration(null); setSelectedDestination(''); setSelectedDate(''); setSelectedGuests(''); }}
+                  onClick={() => { setSelectedDestinationId(''); setMaxPrice(MAX_PRICE); setMinRating(undefined); setDifficulty(undefined); setPage(0); }}
                   className="text-xs font-bold text-outline hover:text-on-surface underline underline-offset-2 transition-colors"
                 >
                   Xóa tất cả
@@ -216,224 +265,119 @@ export default function TourSearch() {
             )}
 
             {/* Content Display */}
-            <div className={viewMode === 'grid'
-              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" 
-              : "flex flex-col gap-8"
-            }>
-              {/* Card 1 */}
-              <Link to="/tour/maldives" className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}>
-                <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt="luxury overwater bungalow in maldives" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCogkWsfUeEvcsshybb2U8UofOwaSL-ipUP8kA6YEe2PcKo4gNU34YK9aK9EKDkgFrNoUQe7yqmBrqfRApLqcf1ylNa3QLsurtYDC5vlM_9har_AisY9ohN4sCJ2MjeqUjTmKuTk4I2JwvFjCZO82LQ2vnDN1q1P7RwoHfehfVwkYlgnAA--cKOwUfwk2BGWWO7-uB8Yly3tby_jEkAjJJBk7l91oC_W4bum5p0XV18oHrafZqhZuc3mRnsq55KfVc0TqqVVbjxQEY"
-                  />
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter text-primary shadow-sm">Bán chạy nhất</div>
-                </div>
-                <div className={`p-6 flex flex-col ${viewMode === 'grid' ? 'h-[calc(100%-16rem)]' : 'flex-1 justify-center'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors">Thiên đường Maldives: Nghỉ dưỡng 5 sao</h4>
-                    <div className="flex items-center text-secondary whitespace-nowrap ml-2">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-xs font-bold ml-1">4.9</span>
+            {loading ? (
+              <div className={viewMode === 'grid'
+                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+                : "flex flex-col gap-8"
+              }>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl bg-surface-container animate-pulse h-[360px]" />
+                ))}
+              </div>
+            ) : tours.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-4 text-on-surface-variant">
+                <span className="material-symbols-outlined text-6xl">travel_explore</span>
+                <p className="font-semibold text-lg">Không tìm thấy tour phù hợp.</p>
+                <p className="text-sm">Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+              </div>
+            ) : (
+              <div className={viewMode === 'grid'
+                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+                : "flex flex-col gap-8"
+              }>
+                {tours.map(tour => (
+                  <Link
+                    key={tour.id}
+                    to={`/tour/${tour.slug || tour.id}`}
+                    className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}
+                  >
+                    <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
+                      <img
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        src={tour.coverImageUrl ?? `https://picsum.photos/seed/${tour.id}/600/400`}
+                        alt={tour.title}
+                      />
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter text-primary shadow-sm">
+                        {tour.durationDays} ngày {tour.durationNights} đêm
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span> 5 ngày 4 đêm</span>
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">group</span> Max 10 người</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div>
-                      <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
-                      <p className="text-xl font-black text-on-surface tracking-tighter">45.900.000đ</p>
+                    <div className={`p-6 flex flex-col ${viewMode === 'grid' ? '' : 'flex-1 justify-center'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors flex-1 mr-2">{tour.title}</h4>
+                        {tour.rating > 0 && (
+                          <div className="flex items-center text-secondary whitespace-nowrap">
+                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="text-xs font-bold ml-1">{tour.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">location_on</span>
+                          {tour.destinationName}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">fitness_center</span>
+                          {tour.difficulty === 'EASY' ? 'Dễ' : tour.difficulty === 'MEDIUM' ? 'TB' : 'Khó'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-auto">
+                        <div>
+                          <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
+                          <p className="text-xl font-black text-on-surface tracking-tighter">{fmt(tour.pricePerPerson)}</p>
+                        </div>
+                        <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
+                          <span className="material-symbols-outlined">arrow_forward</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-              <Link to="/tour/italy" className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}>
-                <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt="colorful houses on a cliff in positano italy overlooking the mediterranean sea with lush greenery" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjPgqZiYVw_JdsgRCEbh95TOMEQfMNaAXzgUD3vGu9_6AehX4gYVtNS8Ouh6lBzRnW00SZvpQVpGqXL_xbRvYSsDj2vNmBQzJY-_bWh4fzgQRyBdwjsL9-ZR0_fXI_Lna8vk7DcxD0QIH0VnmPFTSPFuBB788Wq01bRnhozZ61xg9mP6bor3r8m_vJP2Rby-Q0seQxi0r8CBhQ_fY6keOQrYdqMq45WxoK2_H9JQZDoHpgmrBvS06o_X96FY21REO2NO_jYSLWYBA"
-                  />
-                </div>
-                <div className={`p-6 flex flex-col ${viewMode === 'grid' ? 'h-[calc(100%-16rem)]' : 'flex-1 justify-center'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors">Mùa thu nước Ý: Rome - Venice - Positano</h4>
-                    <div className="flex items-center text-secondary whitespace-nowrap ml-2">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-xs font-bold ml-1">5.0</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span> 10 ngày 9 đêm</span>
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">group</span> Max 12 người</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div>
-                      <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
-                      <p className="text-xl font-black text-on-surface tracking-tighter">78.000.000đ</p>
-                    </div>
-                    <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 3 */}
-              <Link to="/tour/japan" className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}>
-                <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt="shibuya crossing in tokyo japan at night with neon lights and motion blur of crowds" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWiGMIrNWl1-cQvJ0XRrrUGDi0PWIy4mw3PCuxYFgA2n1W-hweKF21RNHk1zYwgqs3pQJFY09tAEn9CHCIxKo0G6QNH2PfZfHcaGvSHcCn7AZ7G_M6mfy5YVOilHbCstGh5vIqruj309g10TYX_jpRbaSINPIw2hP71OpBAFXDdaxJWdz4wfQH2HCItBTwu7j0b2K6zoKT8RQt8CaeY6B1vvzq3gKIjeYHnI9hybch0aEMMMbzhseBR04IP9eLpRDRI2y3vjbwEDY"
-                  />
-                  <div className="absolute top-4 left-4 bg-secondary text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-sm">-15%</div>
-                </div>
-                <div className={`p-6 flex flex-col ${viewMode === 'grid' ? 'h-[calc(100%-16rem)]' : 'flex-1 justify-center'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors">Nhật Bản: Cung đường vàng Tokyo - Kyoto</h4>
-                    <div className="flex items-center text-secondary whitespace-nowrap ml-2">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-xs font-bold ml-1">4.8</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span> 7 ngày 6 đêm</span>
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">group</span> Max 15 người</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div>
-                      <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
-                      <p className="text-xl font-black text-on-surface tracking-tighter">32.500.000đ</p>
-                    </div>
-                    <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 4 */}
-              <Link to="/tour/cambodia" className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}>
-                <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt="ancient temple of angkor wat in cambodia reflected in a lake during sunrise with soft pink clouds" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMHzO5gCfQ61KnbIr1qP59Oq3HleyYiusR4AjpHkx3MetiOTfayx8KoPUC6Wkd-N95vqI4tItQvbdPcXPMPuCoebJAXq4rt0iA5eojfEiudDYKdfNq3LbpHk0ZwNVX5CV2NbHvCtusOwIiqtDQOIIK3KZjpeaFhH0HpjfE9oeC4auS6S9pfBYKpF51hA4iOJUpGYiL37fKpBL6thzRDGbkQ7ovT2MzT3WdLi4953gdUBJmswVLUlwWUSH1twTJxmW5_HXG456W1Mw"
-                  />
-                </div>
-                <div className={`p-6 flex flex-col ${viewMode === 'grid' ? 'h-[calc(100%-16rem)]' : 'flex-1 justify-center'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors">Campuchia: Huyền bí Angkor Wat</h4>
-                    <div className="flex items-center text-secondary whitespace-nowrap ml-2">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-xs font-bold ml-1">4.7</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span> 4 ngày 3 đêm</span>
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">group</span> Max 20 người</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div>
-                      <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
-                      <p className="text-xl font-black text-on-surface tracking-tighter">9.900.000đ</p>
-                    </div>
-                    <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 5 */}
-              <Link to="/tour/greece" className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}>
-                <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt="stunning aerial view of santorini greece with iconic white buildings and blue domed churches against deep blue sea" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8f6FW5a1CN3gzBb2n5V30N4rl9U7buaavLFxQAe5ZcqwQ7gjU2QJt-ywKanjEyfyUIYAGpPQkAH36h2Lf2hWz5YeQ64rOGmwfG1JNYrfSti0OzS8SVt1cjyDPH0MCh0ptcFnsLckmPfLLS-J9GiPAObfs_8R094j2a8gIPXhGzaGVmg3yNRiFCK0k1xKxsFvFw2dxkCgR4n-wuhWPxrJfKcWudFSvNha-im-fjeiVe1ZuiAbPmDYh3jRX_ZXECmLGoxn2K7BtV0I"
-                  />
-                </div>
-                <div className={`p-6 flex flex-col ${viewMode === 'grid' ? 'h-[calc(100%-16rem)]' : 'flex-1 justify-center'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors">Santorini: Hừng đông bên bờ Địa Trung Hải</h4>
-                    <div className="flex items-center text-secondary whitespace-nowrap ml-2">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-xs font-bold ml-1">4.9</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span> 8 ngày 7 đêm</span>
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">group</span> Max 8 người</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div>
-                      <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
-                      <p className="text-xl font-black text-on-surface tracking-tighter">85.000.000đ</p>
-                    </div>
-                    <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 6 */}
-              <Link to="/tour/france" className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}>
-                <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    alt="eiffel tower in paris at night illuminated with warm golden lights under a dark starry sky" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdoVseq_uu6t1tcgrRS5aVw5tU5YAQqYPu0Kva5b7U8cFQ1oDIXmTVZ_aYazYZcz0W8p76BJ7XQe8X5_4_8pc1RYpHo8ub_k6VmSTqz11oI5YCx3cACsznqPQ4QmIieFkaKADi3oHJ1W_3om5B04zjokBgrReqOTPCfrPDlzYS6VmuZvt8ejfjOz2YXjlDFre5SyPjYymPLo8Qp4QupqXBV6SJ-_Y-VKn4W6F034kAqV7IEjG25SvG6I-q_CdMMot-VbnYbx4htKM"
-                  />
-                </div>
-                <div className={`p-6 flex flex-col ${viewMode === 'grid' ? 'h-[calc(100%-16rem)]' : 'flex-1 justify-center'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors">Kinh đô ánh sáng: Paris - Versailles - Loire</h4>
-                    <div className="flex items-center text-secondary whitespace-nowrap ml-2">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-xs font-bold ml-1">4.8</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-outline font-medium mb-6">
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">schedule</span> 9 ngày 8 đêm</span>
-                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">group</span> Max 14 người</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div>
-                      <p className="text-[10px] text-outline uppercase font-black tracking-widest leading-none">Giá từ</p>
-                      <p className="text-xl font-black text-on-surface tracking-tighter">62.000.000đ</p>
-                    </div>
-                    <div className="primary-gradient text-white p-3 rounded-xl shadow-lg transition-transform">
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="mt-16 flex justify-center items-center gap-4">
-              <button className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-low text-outline hover:bg-surface-container-highest transition-all">
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              <button className="w-12 h-12 flex items-center justify-center rounded-xl bg-primary text-white font-bold shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">1</button>
-              <button className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-lowest text-outline hover:text-on-surface hover:bg-surface-container-high transition-all font-bold">2</button>
-              <button className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-lowest text-outline hover:text-on-surface hover:bg-surface-container-high transition-all font-bold">3</button>
-              <span className="text-outline font-bold">...</span>
-              <button className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-lowest text-outline hover:text-on-surface hover:bg-surface-container-high transition-all font-bold">12</button>
-              <button className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-low text-outline hover:bg-surface-container-highest transition-all">
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-            </div>
-
+            {totalPages > 1 && (
+              <div className="mt-16 flex justify-center items-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-low text-outline hover:bg-surface-container-highest transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined">chevron_left</span>
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i)
+                  .filter(i => i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 2)
+                  .reduce<(number | '...')[]>((acc, i, idx, arr) => {
+                    if (idx > 0 && typeof arr[idx - 1] === 'number' && (i as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                    acc.push(i);
+                    return acc;
+                  }, [])
+                  .map((item, i) => item === '...' ? (
+                    <span key={`ellipsis-${i}`} className="text-outline font-bold px-1">...</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setPage(item as number)}
+                      className={`w-12 h-12 flex items-center justify-center rounded-xl font-bold transition-all ${
+                        page === item
+                          ? 'bg-primary text-white shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]'
+                          : 'bg-surface-container-lowest text-outline hover:text-on-surface hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {(item as number) + 1}
+                    </button>
+                  ))
+                }
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page === totalPages - 1}
+                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-low text-outline hover:bg-surface-container-highest transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -465,10 +409,11 @@ export default function TourSearch() {
           <div>
             <h5 className="text-blue-900 font-bold mb-6">Điểm đến nổi bật</h5>
             <ul className="space-y-4 text-sm text-slate-500">
-              <li><a className="hover:text-blue-600 transition-colors" href="#!">Châu Âu</a></li>
-              <li><a className="hover:text-blue-600 transition-colors" href="#!">Châu Á Thái Bình Dương</a></li>
-              <li><a className="hover:text-blue-600 transition-colors" href="#!">Châu Mỹ</a></li>
-              <li><a className="hover:text-blue-600 transition-colors" href="#!">Trung Đông</a></li>
+              {destinations.slice(0, 4).map(d => (
+                <li key={d.id}>
+                  <Link className="hover:text-blue-600 transition-colors" to={`/tours?keyword=${encodeURIComponent(d.name)}`}>{d.name}</Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>

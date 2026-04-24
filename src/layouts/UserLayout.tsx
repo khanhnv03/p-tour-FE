@@ -2,10 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, NavLink } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
+
+const FALLBACK_AVATAR = 'https://picsum.photos/seed/user/200/200';
 
 export default function UserLayout() {
+  const { user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const displayName = user?.fullName || user?.email || 'Khách';
+  const avatarSrc = user?.avatarUrl || FALLBACK_AVATAR;
 
   // Thêm logic để click ra ngoài thì đóng dropdown
   useEffect(() => {
@@ -51,13 +57,13 @@ export default function UserLayout() {
                 className="flex items-center space-x-3 pl-4 border-l border-slate-200 focus:outline-none group"
               >
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Alex PTIT</p>
+                  <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{displayName}</p>
                   <p className="text-xs text-slate-500 font-medium">Hạng thám hiểm</p>
                 </div>
-                <img 
-                  alt="Tài khoản" 
-                  className={`w-10 h-10 rounded-full object-cover shadow-sm border-2 transition-colors ${isDropdownOpen ? 'border-primary' : 'border-transparent group-hover:border-primary/50'}`} 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuWdojTWLkOZJO7QnZk1Wu_ZBDHhV69mkUS6E1dOq1thfZ2NUGn0cSdWeZ1FuvzSn72heapjOVtZayQZJBBvU4ZfphklLyJCbiZr52vPnEylMd1LVco5vhVXoG9dHED-jLAVTUoKFq-KiV-X05kV55feDmDV_6kBrXStV8VHtrvmnGAinvdD93a7x864zUNI0kOz00y-Z4KfdaqBl4vaFUmcotTZAopEvZ2xXBBbmJalX3FAmhye-kD0t4FHeAWyYs6as61ZOXwas" 
+                <img
+                  alt="Tài khoản"
+                  className={`w-10 h-10 rounded-full object-cover shadow-sm border-2 transition-colors ${isDropdownOpen ? 'border-primary' : 'border-transparent group-hover:border-primary/50'}`}
+                  src={avatarSrc}
                   referrerPolicy="no-referrer"
                 />
               </button>
@@ -73,7 +79,7 @@ export default function UserLayout() {
                     className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-[0_8px_32px_0_rgba(25,28,29,0.12)] border border-slate-100 py-2 z-50 overflow-hidden"
                   >
                     <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 sm:hidden">
-                      <p className="text-sm font-bold text-slate-900">Alex PTIT</p>
+                      <p className="text-sm font-bold text-slate-900">{displayName}</p>
                       <p className="text-xs text-slate-500 font-medium">Hạng thám hiểm</p>
                     </div>
                     
@@ -97,10 +103,10 @@ export default function UserLayout() {
                     </div>
                     
                     <div className="border-t border-slate-100 pt-2">
-                      <Link onClick={() => setIsDropdownOpen(false)} to="/" className="flex items-center gap-3 px-4 py-2 text-sm font-bold text-error hover:bg-red-50 transition-colors">
+                      <button onClick={() => { setIsDropdownOpen(false); logout(); }} className="flex items-center gap-3 px-4 py-2 text-sm font-bold text-error hover:bg-red-50 transition-colors w-full text-left">
                         <span className="material-symbols-outlined text-lg">logout</span>
                         Đăng xuất
-                      </Link>
+                      </button>
                     </div>
                   </motion.div>
                 )}
@@ -116,10 +122,10 @@ export default function UserLayout() {
           <div className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-low shadow-[0_8px_32px_0_rgba(25,28,29,0.04)] text-center relative overflow-hidden group">
             <div className="absolute inset-0 signature-gradient opacity-10 group-hover:opacity-20 transition-opacity"></div>
             <div className="w-20 h-20 mx-auto rounded-full overflow-hidden shadow-md border-4 border-white mb-4 relative z-10 bg-white">
-              <img alt="Alex PTIT" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuWdojTWLkOZJO7QnZk1Wu_ZBDHhV69mkUS6E1dOq1thfZ2NUGn0cSdWeZ1FuvzSn72heapjOVtZayQZJBBvU4ZfphklLyJCbiZr52vPnEylMd1LVco5vhVXoG9dHED-jLAVTUoKFq-KiV-X05kV55feDmDV_6kBrXStV8VHtrvmnGAinvdD93a7x864zUNI0kOz00y-Z4KfdaqBl4vaFUmcotTZAopEvZ2xXBBbmJalX3FAmhye-kD0t4FHeAWyYs6as61ZOXwas"/>
+              <img alt={displayName} className="w-full h-full object-cover" src={avatarSrc} referrerPolicy="no-referrer" />
             </div>
             <div className="relative z-10">
-              <h3 className="text-blue-900 dark:text-blue-50 font-black text-lg truncate">Alex PTIT</h3>
+              <h3 className="text-blue-900 dark:text-blue-50 font-black text-lg truncate">{displayName}</h3>
               <p className="text-secondary text-[10px] font-black uppercase tracking-[0.2em] mt-1">Explorer Tier</p>
             </div>
           </div>
@@ -162,10 +168,10 @@ export default function UserLayout() {
                 <span className="material-symbols-outlined text-sm">help</span>
                 Trợ giúp
               </Link>
-              <Link to="/login" className="flex items-center gap-2 text-error hover:opacity-80 transition-colors font-bold text-xs">
+              <button onClick={logout} className="flex items-center gap-2 text-error hover:opacity-80 transition-colors font-bold text-xs">
                 <span className="material-symbols-outlined text-sm">logout</span>
                 Đăng xuất
-              </Link>
+              </button>
             </div>
           </div>
         </aside>

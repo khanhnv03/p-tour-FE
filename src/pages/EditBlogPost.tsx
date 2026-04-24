@@ -66,10 +66,10 @@ export default function EditBlogPost() {
     <div className="flex-1 min-h-screen bg-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
 
       {/* Sticky Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-10 py-5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
+      <header className="sticky top-0 z-30 flex items-center justify-between px-10 py-5 bg-white/90 backdrop-blur-xl border-b border-slate-100">
         <div className="flex items-center gap-8">
           <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-slate-100 uppercase">{BRAND_NAME}</h1>
+            <h1 className="text-xl font-black tracking-tighter text-slate-900 uppercase">{BRAND_NAME}</h1>
             <Link to="/admin/blog" className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1 mt-0.5">
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Quay lại danh sách

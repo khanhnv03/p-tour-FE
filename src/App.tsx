@@ -16,8 +16,8 @@ import Register from './pages/Register';
 import OAuth2Callback from './pages/OAuth2Callback';
 import MainLayout from './layouts/MainLayout';
 import UserLayout from './layouts/UserLayout';
-import Dashboard from './pages/Dashboard';
-import Analytics from './pages/Analytics';
+import Dashboard from './pages/DashboardNew';
+import Analytics from './pages/AnalyticsNew';
 import Settings from './pages/Settings';
 import MyBookings from './pages/MyBookings';
 import NotFound from './pages/NotFound';
@@ -26,14 +26,14 @@ import ContactUs from './pages/ContactUs';
 import Journal from './pages/Journal';
 import Deals from './pages/Deals';
 import OrderDetails from './pages/OrderDetails';
-import ManageTours from './pages/ManageTours';
+import ManageTours from './pages/ManageToursNew';
 import Success from './pages/Success';
-import ManageBlog from './pages/ManageBlog';
-import ManageCustomers from './pages/ManageCustomers';
-import ManageOrders from './pages/ManageOrders';
+import ManageBlog from './pages/ManageBlogNew';
+import ManageCustomers from './pages/ManageCustomersNew';
+import ManageOrders from './pages/ManageOrdersNew';
 import AddTour from './pages/AddTour';
 import EditBlogPost from './pages/EditBlogPost';
-import ManageDeals from './pages/ManageDeals';
+import ManageDeals from './pages/ManageDealsNew';
 import BlogPost from './pages/BlogPost';
 import CreateBlogPost from './pages/CreateBlogPost';
 import UserProfile from './pages/UserProfile';
@@ -41,6 +41,7 @@ import BookingDetails from './pages/BookingDetails';
 import DealEditor from './pages/DealEditor';
 import CustomerDetails from './pages/CustomerDetails';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Wishlist from './pages/Wishlist';
 
 export default function App() {
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/oauth2/callback" element={<OAuth2Callback />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/journal" element={<Journal />} />

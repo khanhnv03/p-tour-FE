@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
+
+const FALLBACK_AVATAR = 'https://picsum.photos/seed/admin/200/200';
 
 export default function Header() {
+  const { user, logout } = useAuth();
+  const displayName = user?.fullName || user?.email || 'Admin';
+  const avatarSrc = user?.avatarUrl || FALLBACK_AVATAR;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,13 +41,13 @@ export default function Header() {
             className="flex items-center space-x-3 pl-4 border-l border-outline-variant/30 focus:outline-none group"
           >
             <div className="text-right">
-              <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">Alex PTIT</p>
-              <p className="text-xs text-on-surface-variant">Hạng thám hiểm</p>
+              <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{displayName}</p>
+              <p className="text-xs text-on-surface-variant">Quản trị viên</p>
             </div>
-            <img 
-              alt="Admin Profile" 
-              className={`w-10 h-10 rounded-full object-cover shadow-sm bg-white border-2 transition-colors ${isDropdownOpen ? 'border-primary' : 'border-transparent group-hover:border-primary/50'}`} 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiI6pepAocxGpTukq4VCdFYIO1Izt9JVpqK7kx2I9yfIwoc9qXnsR1BhkTdak_olkQWIu3P6SPxEcvq-WSAU1P3IShab3HSZrzGk0E5_zRzl-xN9oNXmg2gmbJcS_lA96uOl5xTWy4fjMx1Cvfs-FhepZJUzY6F-xyN2yUnvYM9eXhcHg7CqObezH1BHpyj4EF_oafma8ZLFwOIsoM3jT1AbMQ4yPkWi3T9_J2GXrL4IrOTm9UWVz1pZWX8y7NFAMkSBc-QFMkCK8"
+            <img
+              alt={displayName}
+              className={`w-10 h-10 rounded-full object-cover shadow-sm bg-white border-2 transition-colors ${isDropdownOpen ? 'border-primary' : 'border-transparent group-hover:border-primary/50'}`}
+              src={avatarSrc}
               referrerPolicy="no-referrer"
             />
           </button>
@@ -72,10 +78,10 @@ export default function Header() {
                 </div>
                 
                 <div className="border-t border-outline-variant/20 pt-2">
-                  <Link onClick={() => setIsDropdownOpen(false)} to="/" className="flex items-center gap-3 px-4 py-2 text-sm font-bold text-error hover:bg-error/10 transition-colors">
+                  <button onClick={() => { setIsDropdownOpen(false); logout(); }} className="flex items-center gap-3 px-4 py-2 text-sm font-bold text-error hover:bg-error/10 transition-colors w-full text-left">
                     <span className="material-symbols-outlined text-lg">logout</span>
                     Đăng xuất
-                  </Link>
+                  </button>
                 </div>
               </motion.div>
             )}

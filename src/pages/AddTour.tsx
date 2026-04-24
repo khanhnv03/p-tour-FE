@@ -87,7 +87,7 @@ export default function AddTour() {
   return (
     <div className="flex-1 min-h-screen bg-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
       {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-8 py-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-surface-container-low/50">
+      <header className="sticky top-0 z-30 flex items-center justify-between px-8 py-4 bg-white/90 backdrop-blur-xl border-b border-surface-container-low/50">
         <div className="flex items-center gap-6">
           <Link to="/admin/tours" className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center hover:bg-primary/10 transition-colors group">
             <span className="material-symbols-outlined text-sm text-outline group-hover:text-primary">arrow_back</span>
@@ -626,28 +626,28 @@ export default function AddTour() {
       </div>
 
       {/* Footer */}
-      <footer className="w-full bg-slate-50 dark:bg-slate-950 border-t border-surface-container-low mx-auto">
+      <footer className="w-full bg-slate-50 border-t border-surface-container-low mx-auto">
         <div className="max-w-[1400px] mx-auto px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="col-span-1 md:col-span-1">
-            <h3 className="text-lg font-black tracking-tighter text-blue-900 dark:text-blue-100 mb-4">{BRAND_NAME}</h3>
+            <h3 className="text-lg font-black tracking-tighter text-blue-900 mb-4">{BRAND_NAME}</h3>
             <p className="text-xs leading-relaxed text-slate-500 font-light italic">"Defined by Discovery, Crafted by Curators."</p>
           </div>
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900 dark:text-blue-100">Liên kết nhanh</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900">Liên kết nhanh</h4>
             <ul className="space-y-3 text-xs font-bold text-slate-500">
               <li><Link className="hover:text-primary transition-colors" to="/admin/tours">Danh sách Tour</Link></li>
               <li><Link className="hover:text-primary transition-colors" to="/admin/orders">Đơn hàng mới</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900 dark:text-blue-100">Hỗ trợ kỹ thuật</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900">Hỗ trợ kỹ thuật</h4>
             <ul className="space-y-3 text-xs font-bold text-slate-500">
               <li><Link className="hover:text-primary transition-colors" to="#">Tài liệu hướng dẫn</Link></li>
               <li><Link className="hover:text-primary transition-colors" to="#">Gửi yêu cầu giúp đỡ</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900 dark:text-blue-100">Hệ thống</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-900">Hệ thống</h4>
             <div className="flex items-center gap-3">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
               <span className="text-xs font-bold text-slate-500">Toàn bộ máy chủ hoạt động tốt</span>
