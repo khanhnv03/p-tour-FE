@@ -75,6 +75,13 @@ export interface MediaAsset {
   size: number;
 }
 
+export interface DestinationSummary {
+  totalDestinations: number;
+  featuredDestinations: number;
+  destinationsWithTours: number;
+  emptyDestinations: number;
+}
+
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const { data } = await apiClient.get('/admin/dashboard/summary');
   return data.data;
@@ -191,8 +198,21 @@ export async function listAdminDeals(params: { keyword?: string; status?: string
   return data.data;
 }
 
-export async function listAdminDestinations(params: { keyword?: string; page?: number; size?: number } = {}): Promise<PageResponse<Destination>> {
+export async function listAdminDestinations(params: {
+  keyword?: string;
+  featured?: boolean;
+  country?: string;
+  region?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<PageResponse<Destination>> {
   const { data } = await apiClient.get('/admin/destinations', { params });
+  return data.data;
+}
+
+export async function getAdminDestinationSummary(): Promise<DestinationSummary> {
+  const { data } = await apiClient.get('/admin/destinations/summary');
   return data.data;
 }
 

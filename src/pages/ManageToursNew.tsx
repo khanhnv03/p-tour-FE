@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChangeEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   listAdminDestinations,
+  getAdminDestinationSummary,
   getAdminDestination,
   createAdminDestination,
   updateAdminDestination,
   deleteAdminDestination,
   uploadMedia,
 } from '../api/admin';
+import type { DestinationSummary } from '../api/admin';
 import type { Destination, SaveDestinationRequest } from '../api/destinations';
 
 /* ── mock tour data (tours tab – chưa ghép API) ── */
@@ -30,6 +32,14 @@ const PLACEHOLDER_IMG = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Imag
 
 type Tab      = 'tours' | 'destinations';
 type ViewMode = 'grid'  | 'list';
+type DestinationFeaturedFilter = 'all' | 'featured' | 'normal';
+
+const DESTINATION_SORT_OPTIONS = [
+  { value: 'createdAt,desc', label: 'Mới nhất' },
+  { value: 'name,asc', label: 'Tên A-Z' },
+  { value: 'tourCount,desc', label: 'Nhiều tour' },
+  { value: 'featured,desc', label: 'Nổi bật' },
+];
 
 const EMPTY_FORM: SaveDestinationRequest = {
   name: '',
@@ -41,7 +51,10 @@ const EMPTY_FORM: SaveDestinationRequest = {
 };
 
 export default function ManageToursNew() {
-  const [tab,  setTab]  = useState<Tab>('tours');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeTab: Tab = location.pathname.startsWith('/admin/destinations') ? 'destinations' : 'tours';
+  const [tab,  setTab]  = useState<Tab>(routeTab);
   const [view, setView] = useState<ViewMode>('grid');
 
   /* ── destination list state ── */
@@ -49,6 +62,10 @@ export default function ManageToursNew() {
   const [destLoading,        setDestLoading]        = useState(false);
   const [destError,          setDestError]          = useState<string | null>(null);
   const [destKeyword,        setDestKeyword]        = useState('');
+  const [destFeaturedFilter, setDestFeaturedFilter] = useState<DestinationFeaturedFilter>('all');
+  const [destRegion,         setDestRegion]         = useState('');
+  const [destSort,           setDestSort]           = useState('createdAt,desc');
+  const [destSummary,        setDestSummary]        = useState<DestinationSummary | null>(null);
   const [destPage,           setDestPage]           = useState(0);
   const [destTotalPages,     setDestTotalPages]     = useState(0);
   const [destTotalElements,  setDestTotalElements]  = useState(0);
@@ -69,11 +86,28 @@ export default function ManageToursNew() {
   const [deleteError,  setDeleteError]  = useState<string | null>(null);
 
   /* ── fetch ── */
-  const fetchDestinations = useCallback(async (keyword: string, page: number) => {
+  const fetchDestinations = useCallback(async (
+    keyword: string,
+    page: number,
+    featuredFilter: DestinationFeaturedFilter,
+    region: string,
+    sort: string,
+  ) => {
     setDestLoading(true);
     setDestError(null);
     try {
-      const res = await listAdminDestinations({ keyword: keyword || undefined, page, size: 12 });
+      const [summary, res] = await Promise.all([
+        getAdminDestinationSummary(),
+        listAdminDestinations({
+          keyword: keyword || undefined,
+          featured: featuredFilter === 'all' ? undefined : featuredFilter === 'featured',
+          region: region || undefined,
+          sort,
+          page,
+          size: 12,
+        }),
+      ]);
+      setDestSummary(summary);
       setDestinations(res.content);
       setDestTotalPages(res.totalPages);
       setDestTotalElements(res.totalElements);
@@ -85,10 +119,19 @@ export default function ManageToursNew() {
   }, []);
 
   useEffect(() => {
+    setTab(routeTab);
+  }, [routeTab]);
+
+  useEffect(() => {
     if (tab === 'destinations') {
-      fetchDestinations(destKeyword, destPage);
+      fetchDestinations(destKeyword, destPage, destFeaturedFilter, destRegion, destSort);
     }
-  }, [tab, destKeyword, destPage, fetchDestinations]);
+  }, [tab, destKeyword, destPage, destFeaturedFilter, destRegion, destSort, fetchDestinations]);
+
+  function switchTab(nextTab: Tab) {
+    setTab(nextTab);
+    navigate(nextTab === 'destinations' ? '/admin/destinations' : '/admin/tours');
+  }
 
   /* ── modal helpers ── */
   function openCreate() {
@@ -152,9 +195,16 @@ export default function ManageToursNew() {
         const created = await createAdminDestination(form);
         setDestinations(prev => [created, ...prev]);
         setDestTotalElements(n => n + 1);
+        setDestSummary(prev => prev ? {
+          ...prev,
+          totalDestinations: prev.totalDestinations + 1,
+          featuredDestinations: prev.featuredDestinations + (created.featured ? 1 : 0),
+          emptyDestinations: prev.emptyDestinations + 1,
+        } : prev);
       } else if (editingId != null) {
         const updated = await updateAdminDestination(editingId, form);
         setDestinations(prev => prev.map(d => d.id === editingId ? updated : d));
+        fetchDestinations(destKeyword, destPage, destFeaturedFilter, destRegion, destSort);
       }
       setModalOpen(false);
     } catch (e: unknown) {
@@ -182,6 +232,13 @@ export default function ManageToursNew() {
       await deleteAdminDestination(deleteTarget.id);
       setDestinations(prev => prev.filter(d => d.id !== deleteTarget.id));
       setDestTotalElements(n => Math.max(0, n - 1));
+      setDestSummary(prev => prev ? {
+        ...prev,
+        totalDestinations: Math.max(0, prev.totalDestinations - 1),
+        featuredDestinations: Math.max(0, prev.featuredDestinations - (deleteTarget.featured ? 1 : 0)),
+        destinationsWithTours: deleteTarget.tourCount > 0 ? Math.max(0, prev.destinationsWithTours - 1) : prev.destinationsWithTours,
+        emptyDestinations: deleteTarget.tourCount === 0 ? Math.max(0, prev.emptyDestinations - 1) : prev.emptyDestinations,
+      } : prev);
       setDeleteTarget(null);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -191,7 +248,9 @@ export default function ManageToursNew() {
     }
   }
 
-  const featuredCount = destinations.filter(d => d.featured).length;
+  const activeDestinationRate = destSummary && destSummary.totalDestinations > 0
+    ? Math.round((destSummary.destinationsWithTours / destSummary.totalDestinations) * 1000) / 10
+    : 0;
 
   return (
     <div className="flex flex-col flex-1 p-6 lg:p-8 overflow-y-auto gap-6">
@@ -445,7 +504,7 @@ export default function ManageToursNew() {
           ] as const).map(t => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => switchTab(t.key)}
               className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${
                 tab === t.key ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
               }`}
@@ -484,9 +543,7 @@ export default function ManageToursNew() {
             style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
           <div>
             <p className="text-sm font-bold text-blue-800">Điểm đến là khu vực địa lý (Vịnh Hạ Long, Sapa…)</p>
-            <p className="text-xs text-blue-600 mt-0.5 font-medium">
-              Mỗi điểm đến có thể chứa nhiều gói tour. Để quản lý lịch trình và đặt chỗ, chuyển sang tab <strong>Tour</strong>.
-            </p>
+            <p className="text-xs text-blue-600 mt-0.5 font-medium">Mỗi điểm đến có thể chứa nhiều gói tour.</p>
           </div>
         </div>
       )}
@@ -499,18 +556,17 @@ export default function ManageToursNew() {
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black text-primary tracking-tight">
-              {tab === 'tours' ? TOUR_PACKAGES.length : destLoading ? '…' : destTotalElements}
+              {tab === 'tours' ? TOUR_PACKAGES.length : destLoading ? '…' : (destSummary?.totalDestinations ?? destTotalElements)}
             </span>
-            <span className="text-[10px] font-bold text-emerald-500">+3 tuần này</span>
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-black/5 shadow-[0_2px_16px_rgba(0,0,0,0.05)] p-5 flex flex-col gap-2">
           <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
-            {tab === 'tours' ? 'Chuyến đi đã xuất bản' : 'Nổi bật (trang này)'}
+            {tab === 'tours' ? 'Chuyến đi đã xuất bản' : 'Nổi bật'}
           </p>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-black text-on-surface tracking-tight">
-              {tab === 'tours' ? 582 : featuredCount}
+              {tab === 'tours' ? 582 : (destSummary?.featuredDestinations ?? 0)}
             </span>
             <span className="material-symbols-outlined text-primary">
               {tab === 'tours' ? 'trending_up' : 'star'}
@@ -518,8 +574,12 @@ export default function ManageToursNew() {
           </div>
         </div>
         <div className="primary-gradient rounded-2xl p-5 flex flex-col gap-2 shadow-[0_4px_20px_rgba(0,78,159,0.18)] relative overflow-hidden">
-          <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/70">Hiệu suất vận hành</p>
-          <span className="text-3xl font-black text-white tracking-tight">84.2%</span>
+          <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/70">
+            {tab === 'tours' ? 'Hiệu suất vận hành' : 'Đã gắn tour'}
+          </p>
+          <span className="text-3xl font-black text-white tracking-tight">
+            {tab === 'tours' ? '84.2%' : `${activeDestinationRate}%`}
+          </span>
           <div className="absolute -right-2 -bottom-2 opacity-10 pointer-events-none">
             <span className="material-symbols-outlined text-[56px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               monitoring
@@ -530,20 +590,46 @@ export default function ManageToursNew() {
 
       {/* ── Search (destinations tab only) ── */}
       {tab === 'destinations' && (
-        <div className="shrink-0 flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3.5 py-2.5 w-full max-w-md focus-within:border-primary/60 transition-colors">
-          <span className="material-symbols-outlined text-slate-400 text-sm">search</span>
+        <div className="shrink-0 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3.5 py-2.5 w-full max-w-md focus-within:border-primary/60 transition-colors">
+            <span className="material-symbols-outlined text-slate-400 text-sm">search</span>
+            <input
+              type="text"
+              value={destKeyword}
+              onChange={e => { setDestKeyword(e.target.value); setDestPage(0); }}
+              placeholder="Tìm theo tên, quốc gia, khu vực hoặc slug…"
+              className="flex-1 text-sm text-on-surface bg-transparent focus:outline-none placeholder:text-slate-400"
+            />
+            {destKeyword && (
+              <button onClick={() => { setDestKeyword(''); setDestPage(0); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            )}
+          </div>
+          <select
+            value={destFeaturedFilter}
+            onChange={e => { setDestFeaturedFilter(e.target.value as DestinationFeaturedFilter); setDestPage(0); }}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:outline-none focus:border-primary/60"
+          >
+            <option value="all">Tất cả</option>
+            <option value="featured">Nổi bật</option>
+            <option value="normal">Không nổi bật</option>
+          </select>
           <input
-            type="text"
-            value={destKeyword}
-            onChange={e => { setDestKeyword(e.target.value); setDestPage(0); }}
-            placeholder="Tìm kiếm điểm đến…"
-            className="flex-1 text-sm text-on-surface bg-transparent focus:outline-none placeholder:text-slate-400"
+            value={destRegion}
+            onChange={e => { setDestRegion(e.target.value); setDestPage(0); }}
+            placeholder="Khu vực"
+            className="h-11 w-36 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:outline-none focus:border-primary/60"
           />
-          {destKeyword && (
-            <button onClick={() => { setDestKeyword(''); setDestPage(0); }} className="text-slate-400 hover:text-slate-600 transition-colors">
-              <span className="material-symbols-outlined text-sm">close</span>
-            </button>
-          )}
+          <select
+            value={destSort}
+            onChange={e => { setDestSort(e.target.value); setDestPage(0); }}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:outline-none focus:border-primary/60"
+          >
+            {DESTINATION_SORT_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -574,7 +660,7 @@ export default function ManageToursNew() {
           <span className="material-symbols-outlined text-5xl text-error" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
           <p className="text-sm text-slate-600 font-medium">{destError}</p>
           <button
-            onClick={() => fetchDestinations(destKeyword, destPage)}
+            onClick={() => fetchDestinations(destKeyword, destPage, destFeaturedFilter, destRegion, destSort)}
             className="px-4 py-2 rounded-xl bg-primary/8 text-primary text-sm font-bold hover:bg-primary/15 transition-all"
           >
             Thử lại

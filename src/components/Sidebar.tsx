@@ -25,8 +25,8 @@ export default function Sidebar() {
           <span>Bảng điều khiển</span>
         </Link>
         <Link 
-          className={`flex items-center space-x-3 px-4 py-3 ml-2 font-semibold text-sm transition-all rounded-xl ${isActive('/admin/tours') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:translate-x-1 hover:text-blue-600'}`} 
-          to="/admin/tours"
+          className={`flex items-center space-x-3 px-4 py-3 ml-2 font-semibold text-sm transition-all rounded-xl ${isActive('/admin/destinations') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:translate-x-1 hover:text-blue-600'}`} 
+          to="/admin/destinations"
         >
           <span className="material-symbols-outlined">travel_explore</span>
           <span>Điểm đến</span>

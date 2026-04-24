@@ -87,6 +87,7 @@ export default function App() {
               <Route path="tours" element={<ManageTours />} />
               <Route path="tours/new" element={<AddTour />} />
               <Route path="tours/edit/:id" element={<AddTour />} />
+              <Route path="destinations" element={<ManageTours />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
               <Route path="blog" element={<ManageBlog />} />
