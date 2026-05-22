@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_LOGO } from '../constants';
 import { forgotPassword } from '../api/auth';
+import { extractApiErrorMessage } from '../api/types';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -17,8 +18,8 @@ export default function ForgotPassword() {
     try {
       await forgotPassword(email);
       setSent(true);
-    } catch {
-      setError('Có lỗi xảy ra, vui lòng thử lại.');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Có lỗi xảy ra, vui lòng thử lại.'));
     } finally {
       setLoading(false);
     }

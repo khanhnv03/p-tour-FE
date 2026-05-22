@@ -1,10 +1,11 @@
 import apiClient from './client';
 import type { Booking, BookingStatus } from './bookings';
-import type { Deal } from './deals';
+import type { Deal, DealStatus, DiscountType, DisplayMode } from './deals';
 import type { Destination, SaveDestinationRequest } from './destinations';
 import type { Order, PaymentStatus } from './orders';
-import type { InclusionType, PageResponse, TourDetail, TourDifficulty, TourStatus, TourSummary } from './tours';
-import type { UserProfile } from './users';
+import type { InclusionType, TourDetail, TourDifficulty, TourStatus, TourSummary } from './tours';
+import { unwrapApiResponse, type PageResponse } from './types';
+import type { UpdateProfileRequest, UserProfile, UserRole, UserStatus } from './users';
 
 export type ContactStatus = 'NEW' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
@@ -84,32 +85,37 @@ export interface DestinationSummary {
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const { data } = await apiClient.get('/admin/dashboard/summary');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getRecentBookings(params: { page?: number; size?: number } = {}): Promise<PageResponse<Booking>> {
   const { data } = await apiClient.get('/admin/dashboard/recent-bookings', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getTopTours(limit = 5): Promise<TopTour[]> {
   const { data } = await apiClient.get('/admin/dashboard/top-tours', { params: { limit } });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getRevenueAnalytics(params: { from?: string; to?: string } = {}): Promise<TimeSeriesPoint[]> {
   const { data } = await apiClient.get('/admin/analytics/revenue', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getBookingAnalytics(params: { from?: string; to?: string } = {}): Promise<BookingAnalytics> {
   const { data } = await apiClient.get('/admin/analytics/bookings', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
-export async function getConversionAnalytics(): Promise<ConversionAnalytics> {
-  const { data } = await apiClient.get('/admin/analytics/conversion');
-  return data.data;
+export async function getConversionAnalytics(params: { from?: string; to?: string } = {}): Promise<ConversionAnalytics> {
+  const { data } = await apiClient.get('/admin/analytics/conversion', { params });
+  return unwrapApiResponse(data);
+}
+
+export async function exportAnalytics(params: { from?: string; to?: string } = {}): Promise<Blob> {
+  const { data } = await apiClient.get('/admin/analytics/export', { params, responseType: 'blob' });
+  return data;
 }
 
 export async function listAdminTours(params: {
@@ -123,12 +129,12 @@ export async function listAdminTours(params: {
   size?: number;
 } = {}): Promise<PageResponse<TourSummary>> {
   const { data } = await apiClient.get('/admin/tours', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getAdminTour(id: number): Promise<TourDetail> {
   const { data } = await apiClient.get(`/admin/tours/${id}`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export interface SaveTourRequest {
@@ -156,12 +162,12 @@ export interface SaveTourRequest {
 
 export async function createAdminTour(payload: SaveTourRequest): Promise<TourDetail> {
   const { data } = await apiClient.post('/admin/tours', payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function updateAdminTour(id: number, payload: SaveTourRequest): Promise<TourDetail> {
   const { data } = await apiClient.put(`/admin/tours/${id}`, payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function deleteAdminTour(id: number): Promise<void> {
@@ -175,12 +181,12 @@ export async function listAdminBookings(params: {
   size?: number;
 } = {}): Promise<PageResponse<Booking>> {
   const { data } = await apiClient.get('/admin/bookings', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function updateBookingStatus(id: number, status: BookingStatus): Promise<Booking> {
   const { data } = await apiClient.patch(`/admin/bookings/${id}/status`, null, { params: { status } });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function listAdminOrders(params: {
@@ -188,19 +194,109 @@ export async function listAdminOrders(params: {
   status?: PaymentStatus;
   page?: number;
   size?: number;
+  sort?: string;
 } = {}): Promise<PageResponse<Order>> {
   const { data } = await apiClient.get('/admin/orders', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
-export async function listAdminUsers(params: { keyword?: string; page?: number; size?: number } = {}): Promise<PageResponse<UserProfile>> {
+export async function exportAdminOrders(params: {
+  userId?: number;
+  status?: PaymentStatus;
+} = {}): Promise<Blob> {
+  const { data } = await apiClient.get('/admin/orders/export', { params, responseType: 'blob' });
+  return data;
+}
+
+export interface AdminCustomerDetail {
+  user: UserProfile;
+  bookingCount: number;
+  totalSpent: number | null;
+  lastBookingAt: string | null;
+  recentBookings: Booking[];
+}
+
+export async function listAdminUsers(params: {
+  keyword?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  page?: number;
+  size?: number;
+  sort?: string;
+} = {}): Promise<PageResponse<UserProfile>> {
   const { data } = await apiClient.get('/admin/users', { params });
-  return data.data;
+  return unwrapApiResponse(data);
+}
+
+export async function getAdminUser(id: number): Promise<UserProfile> {
+  const { data } = await apiClient.get(`/admin/users/${id}`);
+  return unwrapApiResponse(data);
+}
+
+export async function getAdminCustomerDetail(id: number): Promise<AdminCustomerDetail> {
+  const { data } = await apiClient.get(`/admin/users/${id}/detail`);
+  return unwrapApiResponse(data);
+}
+
+export async function updateAdminUser(id: number, payload: UpdateProfileRequest): Promise<UserProfile> {
+  const { data } = await apiClient.put(`/admin/users/${id}`, payload);
+  return unwrapApiResponse(data);
+}
+
+export async function updateAdminUserStatus(id: number, status: UserStatus): Promise<UserProfile> {
+  const { data } = await apiClient.patch(`/admin/users/${id}/status`, null, { params: { status } });
+  return unwrapApiResponse(data);
+}
+
+export async function exportAdminUsers(params: {
+  keyword?: string;
+  role?: UserRole;
+  status?: UserStatus;
+} = {}): Promise<Blob> {
+  const { data } = await apiClient.get('/admin/users/export', { params, responseType: 'blob' });
+  return data;
 }
 
 export async function listAdminDeals(params: { keyword?: string; status?: string; dateState?: string; page?: number; size?: number } = {}): Promise<PageResponse<Deal>> {
   const { data } = await apiClient.get('/admin/deals', { params });
-  return data.data;
+  return unwrapApiResponse(data);
+}
+
+export async function getAdminDeal(id: number): Promise<Deal> {
+  const { data } = await apiClient.get(`/admin/deals/${id}`);
+  return unwrapApiResponse(data);
+}
+
+export interface SaveDealRequest {
+  title: string;
+  description?: string | null;
+  campaignImageUrl?: string | null;
+  badgeText?: string | null;
+  category?: string | null;
+  discountType: DiscountType;
+  discountValue: number;
+  promoCode?: string | null;
+  displayMode: DisplayMode;
+  minOrderValue?: number | null;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+  status: DealStatus;
+}
+
+export async function createAdminDeal(payload: SaveDealRequest): Promise<Deal> {
+  const { data } = await apiClient.post('/admin/deals', payload);
+  return unwrapApiResponse(data);
+}
+
+export async function updateAdminDeal(id: number, payload: SaveDealRequest): Promise<Deal> {
+  const { data } = await apiClient.put(`/admin/deals/${id}`, payload);
+  return unwrapApiResponse(data);
+}
+
+export async function deleteAdminDeal(id: number): Promise<void> {
+  await apiClient.delete(`/admin/deals/${id}`);
 }
 
 export async function listAdminDestinations(params: {
@@ -213,36 +309,36 @@ export async function listAdminDestinations(params: {
   size?: number;
 } = {}): Promise<PageResponse<Destination>> {
   const { data } = await apiClient.get('/admin/destinations', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getAdminDestinationSummary(): Promise<DestinationSummary> {
   const { data } = await apiClient.get('/admin/destinations/summary');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getAdminDestination(id: number): Promise<Destination> {
   const { data } = await apiClient.get(`/admin/destinations/${id}`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function createAdminDestination(payload: SaveDestinationRequest): Promise<Destination> {
   const { data } = await apiClient.post('/admin/destinations', payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function updateAdminDestination(id: number, payload: SaveDestinationRequest): Promise<Destination> {
   const { data } = await apiClient.put(`/admin/destinations/${id}`, payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function deleteAdminDestination(id: number): Promise<void> {
   await apiClient.delete(`/admin/destinations/${id}`);
 }
 
-export async function listContacts(params: { status?: ContactStatus; page?: number; size?: number } = {}): Promise<PageResponse<ContactMessage>> {
+export async function listContacts(params: { keyword?: string; status?: ContactStatus; page?: number; size?: number } = {}): Promise<PageResponse<ContactMessage>> {
   const { data } = await apiClient.get('/admin/contacts', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function updateContactStatus(id: number, payload: {
@@ -251,15 +347,47 @@ export async function updateContactStatus(id: number, payload: {
   internalNote?: string;
 }): Promise<ContactMessage> {
   const { data } = await apiClient.patch(`/admin/contacts/${id}/status`, payload);
-  return data.data;
+  return unwrapApiResponse(data);
+}
+
+export type DepartureStatus = 'OPEN' | 'FULL' | 'CANCELLED';
+
+export interface TourDeparture {
+  id: number;
+  departureDate: string;
+  availableSlots: number;
+  bookedSlots: number;
+  priceOverride: number | null;
+  status: DepartureStatus;
+}
+
+export interface SaveDepartureRequest {
+  departureDate: string;
+  availableSlots: number;
+  priceOverride?: number | null;
+  status: DepartureStatus;
+}
+
+export async function createAdminDeparture(tourId: number, payload: SaveDepartureRequest): Promise<TourDeparture> {
+  const { data } = await apiClient.post(`/admin/tours/${tourId}/departures`, payload);
+  return unwrapApiResponse(data);
+}
+
+export async function updateAdminDeparture(tourId: number, departureId: number, payload: SaveDepartureRequest): Promise<TourDeparture> {
+  const { data } = await apiClient.put(`/admin/tours/${tourId}/departures/${departureId}`, payload);
+  return unwrapApiResponse(data);
+}
+
+export async function deleteAdminDeparture(tourId: number, departureId: number): Promise<void> {
+  await apiClient.delete(`/admin/tours/${tourId}/departures/${departureId}`);
 }
 
 export async function uploadMedia(file: File, alt?: string): Promise<MediaAsset> {
   const form = new FormData();
   form.append('file', file);
   if (alt) form.append('alt', alt);
-  const { data } = await apiClient.post('/admin/media', form, {
+  const { data } = await apiClient.post('/media/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data.data;
+  return unwrapApiResponse(data);
 }

@@ -4,6 +4,7 @@ import { BRAND_NAME, BRAND_FOOTER_DESC } from '../constants';
 import UserNavbar from '../components/UserNavbar';
 import { searchTours, type TourSummary, type TourDifficulty } from '../api/tours';
 import { listDestinations, type Destination } from '../api/destinations';
+import { extractApiErrorMessage } from '../api/types';
 
 const fmt = (n: number) => n.toLocaleString('vi-VN') + '₫';
 const PAGE_SIZE = 9;
@@ -22,21 +23,35 @@ const DIFFICULTY_OPTIONS: { label: string; value: TourDifficulty }[] = [
 ];
 
 export default function TourSearch() {
-  const [searchParams] = useSearchParams();
-  const urlKeyword = searchParams.get('keyword') || searchParams.get('destination') || '';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFromUrl = searchParams.get('keyword') || searchParams.get('destination') || '';
+  const dateFromUrl = searchParams.get('date') || '';
+  const guestsFromUrl = searchParams.get('guests');
+  const destinationIdFromUrl = searchParams.get('destinationId');
+  const maxPriceFromUrl = searchParams.get('maxPrice');
+  const minRatingFromUrl = searchParams.get('minRating');
+  const difficultyFromUrl = searchParams.get('difficulty') as TourDifficulty | null;
+  const sortFromUrl = searchParams.get('sort');
+  const pageFromUrl = searchParams.get('page');
 
   const [tours, setTours] = useState<TourSummary[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(pageFromUrl ? Number(pageFromUrl) || 0 : 0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [selectedDestinationId, setSelectedDestinationId] = useState<number | ''>('');
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
-  const [minRating, setMinRating] = useState<number | undefined>();
-  const [difficulty, setDifficulty] = useState<TourDifficulty | undefined>();
-  const [sort, setSort] = useState('bookingCount,desc');
+  const [keyword, setKeyword] = useState(keywordFromUrl);
+  const [travelDate, setTravelDate] = useState(dateFromUrl);
+  const [guestCount, setGuestCount] = useState<number | ''>(guestsFromUrl ? Number(guestsFromUrl) || '' : '');
+  const [selectedDestinationId, setSelectedDestinationId] = useState<number | ''>(
+    destinationIdFromUrl ? Number(destinationIdFromUrl) || '' : ''
+  );
+  const [maxPrice, setMaxPrice] = useState(maxPriceFromUrl ? Number(maxPriceFromUrl) || MAX_PRICE : MAX_PRICE);
+  const [minRating, setMinRating] = useState<number | undefined>(minRatingFromUrl ? Number(minRatingFromUrl) || undefined : undefined);
+  const [difficulty, setDifficulty] = useState<TourDifficulty | undefined>(difficultyFromUrl || undefined);
+  const [sort, setSort] = useState(sortFromUrl || 'bookingCount,desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
@@ -44,10 +59,44 @@ export default function TourSearch() {
   }, []);
 
   useEffect(() => {
+    setKeyword(keywordFromUrl);
+    setTravelDate(dateFromUrl);
+    setGuestCount(guestsFromUrl ? Number(guestsFromUrl) || '' : '');
+    setSelectedDestinationId(destinationIdFromUrl ? Number(destinationIdFromUrl) || '' : '');
+    setMaxPrice(maxPriceFromUrl ? Number(maxPriceFromUrl) || MAX_PRICE : MAX_PRICE);
+    setMinRating(minRatingFromUrl ? Number(minRatingFromUrl) || undefined : undefined);
+    setDifficulty(difficultyFromUrl || undefined);
+    setSort(sortFromUrl || 'bookingCount,desc');
+    setPage(pageFromUrl ? Number(pageFromUrl) || 0 : 0);
+  }, [keywordFromUrl, dateFromUrl, guestsFromUrl, destinationIdFromUrl, maxPriceFromUrl, minRatingFromUrl, difficultyFromUrl, sortFromUrl, pageFromUrl]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams();
+    if (keyword.trim()) nextParams.set('keyword', keyword.trim());
+    if (travelDate) nextParams.set('date', travelDate);
+    if (guestCount !== '') nextParams.set('guests', String(guestCount));
+    if (selectedDestinationId !== '') nextParams.set('destinationId', String(selectedDestinationId));
+    if (maxPrice < MAX_PRICE) nextParams.set('maxPrice', String(maxPrice));
+    if (minRating) nextParams.set('minRating', String(minRating));
+    if (difficulty) nextParams.set('difficulty', difficulty);
+    if (sort !== 'bookingCount,desc') nextParams.set('sort', sort);
+    if (page > 0) nextParams.set('page', String(page));
+
+    const current = searchParams.toString();
+    const next = nextParams.toString();
+    if (current !== next) {
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [keyword, travelDate, guestCount, selectedDestinationId, maxPrice, minRating, difficulty, sort, page, searchParams, setSearchParams]);
+
+  useEffect(() => {
     setLoading(true);
+    setError(null);
     searchTours({
-      keyword: urlKeyword || undefined,
+      keyword: keyword.trim() || undefined,
       destinationId: selectedDestinationId !== '' ? (selectedDestinationId as number) : undefined,
+      date: travelDate || undefined,
+      guests: guestCount !== '' ? Number(guestCount) : undefined,
       maxPrice: maxPrice < MAX_PRICE ? maxPrice : undefined,
       minRating,
       difficulty,
@@ -60,9 +109,14 @@ export default function TourSearch() {
         setTotalElements(res.totalElements);
         setTotalPages(Math.max(1, res.totalPages));
       })
-      .catch(() => {})
+      .catch((err) => {
+        setError(extractApiErrorMessage(err, 'Không thể tải danh sách tour.'));
+        setTours([]);
+        setTotalElements(0);
+        setTotalPages(1);
+      })
       .finally(() => setLoading(false));
-  }, [urlKeyword, selectedDestinationId, maxPrice, minRating, difficulty, sort, page]);
+  }, [keyword, selectedDestinationId, travelDate, guestCount, maxPrice, minRating, difficulty, sort, page]);
 
   function changeFilter<T>(setter: (v: T) => void, value: T) {
     setter(value);
@@ -70,7 +124,9 @@ export default function TourSearch() {
   }
 
   const activeFilters: { label: string; onRemove: () => void }[] = [];
-  if (urlKeyword) activeFilters.push({ label: `Từ khóa: ${urlKeyword}`, onRemove: () => {} });
+  if (keyword) activeFilters.push({ label: `Từ khóa: ${keyword}`, onRemove: () => changeFilter(setKeyword, '') });
+  if (travelDate) activeFilters.push({ label: `Ngày đi: ${new Date(travelDate).toLocaleDateString('vi-VN')}`, onRemove: () => changeFilter(setTravelDate, '') });
+  if (guestCount !== '') activeFilters.push({ label: `${guestCount} khách`, onRemove: () => changeFilter(setGuestCount, '') });
   if (selectedDestinationId !== '') {
     const dest = destinations.find(d => d.id === selectedDestinationId);
     activeFilters.push({ label: `Điểm đến: ${dest?.name ?? ''}`, onRemove: () => changeFilter(setSelectedDestinationId, '') });
@@ -115,6 +171,39 @@ export default function TourSearch() {
                 <span className="material-symbols-outlined text-primary">filter_list</span>
                 Bộ lọc tìm kiếm
               </h3>
+
+              <div className="mb-8">
+                <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Từ khóa</label>
+                <input
+                  className="w-full rounded-xl bg-surface-container-high px-4 py-3 text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
+                  value={keyword}
+                  onChange={(e) => changeFilter(setKeyword, e.target.value)}
+                  placeholder="Tên tour hoặc điểm đến"
+                  type="text"
+                />
+              </div>
+
+              <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Ngày đi</label>
+                  <input
+                    className="w-full rounded-xl bg-surface-container-high px-4 py-3 text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
+                    value={travelDate}
+                    onChange={(e) => changeFilter(setTravelDate, e.target.value)}
+                    type="date"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-outline uppercase tracking-wider mb-3">Số khách</label>
+                  <input
+                    className="w-full rounded-xl bg-surface-container-high px-4 py-3 text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
+                    value={guestCount}
+                    onChange={(e) => changeFilter(setGuestCount, e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
+                    min={1}
+                    type="number"
+                  />
+                </div>
+              </div>
 
               {/* Filter: Destinations */}
               <div className="mb-8">
@@ -201,7 +290,17 @@ export default function TourSearch() {
               </div>
 
               <button
-                onClick={() => { setSelectedDestinationId(''); setMaxPrice(MAX_PRICE); setMinRating(undefined); setDifficulty(undefined); setPage(0); }}
+                onClick={() => {
+                  setKeyword('');
+                  setTravelDate('');
+                  setGuestCount('');
+                  setSelectedDestinationId('');
+                  setMaxPrice(MAX_PRICE);
+                  setMinRating(undefined);
+                  setDifficulty(undefined);
+                  setSort('bookingCount,desc');
+                  setPage(0);
+                }}
                 className="w-full py-4 bg-on-surface text-white font-bold rounded-xl active:scale-95 transition-all"
               >
                 Xóa bộ lọc
@@ -256,7 +355,17 @@ export default function TourSearch() {
                   </span>
                 ))}
                 <button
-                  onClick={() => { setSelectedDestinationId(''); setMaxPrice(MAX_PRICE); setMinRating(undefined); setDifficulty(undefined); setPage(0); }}
+                  onClick={() => {
+                    setKeyword('');
+                    setTravelDate('');
+                    setGuestCount('');
+                    setSelectedDestinationId('');
+                    setMaxPrice(MAX_PRICE);
+                    setMinRating(undefined);
+                    setDifficulty(undefined);
+                    setSort('bookingCount,desc');
+                    setPage(0);
+                  }}
                   className="text-xs font-bold text-outline hover:text-on-surface underline underline-offset-2 transition-colors"
                 >
                   Xóa tất cả
@@ -265,6 +374,12 @@ export default function TourSearch() {
             )}
 
             {/* Content Display */}
+            {error && !loading ? (
+              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 mb-6">
+                {error}
+              </div>
+            ) : null}
+
             {loading ? (
               <div className={viewMode === 'grid'
                 ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
@@ -289,9 +404,9 @@ export default function TourSearch() {
                   <Link
                     key={tour.id}
                     to={`/tour/${tour.slug || tour.id}`}
-                    className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 block ${viewMode === 'list' ? 'flex flex-col md:flex-row' : ''}`}
+                    className={`group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_0_rgba(25,28,29,0.06)] transition-all hover:shadow-xl hover:-translate-y-2 ${viewMode === 'list' ? 'flex flex-col md:flex-row md:min-h-[200px]' : 'flex flex-col h-full'}`}
                   >
-                    <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-64' : 'h-64 md:h-auto md:w-1/3'}`}>
+                    <div className={`relative overflow-hidden flex-shrink-0 ${viewMode === 'grid' ? 'h-56' : 'h-56 md:h-auto md:w-2/5'}`}>
                       <img
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         src={tour.coverImageUrl ?? `https://picsum.photos/seed/${tour.id}/600/400`}
@@ -301,7 +416,7 @@ export default function TourSearch() {
                         {tour.durationDays} ngày {tour.durationNights} đêm
                       </div>
                     </div>
-                    <div className={`p-6 flex flex-col ${viewMode === 'grid' ? '' : 'flex-1 justify-center'}`}>
+                    <div className={`p-6 flex flex-col flex-1 ${viewMode === 'grid' ? '' : 'justify-center'}`}>
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-lg font-black tracking-tight leading-tight group-hover:text-primary transition-colors flex-1 mr-2">{tour.title}</h4>
                         {tour.rating > 0 && (

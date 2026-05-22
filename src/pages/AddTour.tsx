@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { BRAND_NAME } from '../constants';
+import ConfirmDialog from '../components/ConfirmDialog';
 import {
   getAdminTour,
   createAdminTour,
   updateAdminTour,
   listAdminDestinations,
+  createAdminDeparture,
+  updateAdminDeparture,
+  deleteAdminDeparture,
   type SaveTourRequest,
+  type TourDeparture,
+  type DepartureStatus,
 } from '../api/admin';
 import type { TourDifficulty, TourStatus } from '../api/tours';
 import type { Destination } from '../api/destinations';
@@ -23,6 +29,21 @@ const TOUR_STATUS_LABEL: Record<TourStatus, string> = {
   PUBLISHED: 'Đang hoạt động',
   ARCHIVED: 'Lưu trữ',
 };
+
+const DEPARTURE_STATUS_LABEL: Record<DepartureStatus, string> = {
+  OPEN: 'Mở đặt chỗ',
+  FULL: 'Hết chỗ',
+  CANCELLED: 'Đã hủy',
+};
+
+const DEPARTURE_STATUS_CLASS: Record<DepartureStatus, string> = {
+  OPEN: 'bg-emerald-100 text-emerald-700',
+  FULL: 'bg-amber-100 text-amber-700',
+  CANCELLED: 'bg-slate-100 text-slate-500',
+};
+
+type NewDep = { departureDate: string; availableSlots: number; priceOverride: string; status: DepartureStatus };
+type EditDep = NewDep & { id: number };
 
 export default function AddTour() {
   const { id } = useParams();
@@ -50,6 +71,15 @@ export default function AddTour() {
   const [inclusions, setInclusions] = useState([
     { id: 1, text: '', type: 'included' as 'included' | 'excluded' },
   ]);
+
+  /* ── departure state (edit mode only) ── */
+  const [departures,    setDepartures]    = useState<TourDeparture[]>([]);
+  const [newDep,        setNewDep]        = useState<NewDep | null>(null);
+  const [editingDep,    setEditingDep]    = useState<EditDep | null>(null);
+  const [depSaving,     setDepSaving]     = useState(false);
+  const [depError,      setDepError]      = useState<string | null>(null);
+  const [deletingDepId, setDeletingDepId] = useState<number | null>(null);
+  const [deleteDepTarget, setDeleteDepTarget] = useState<TourDeparture | null>(null);
 
   /* ── UI state ── */
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -101,11 +131,12 @@ export default function AddTour() {
           type: (inc.type === 'INCLUDE' ? 'included' : 'excluded') as 'included' | 'excluded',
         })));
       }
+      setDepartures(tour.departures || []);
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, id]);
 
-  /* ── submit ── */
+  /* ── submit tour ── */
   async function handleSubmit(targetStatus = tourStatus) {
     if (!tourTitle.trim()) { setSaveError('Vui lòng nhập tiêu đề tour'); return; }
     if (!destinationId) { setSaveError('Vui lòng chọn điểm đến'); return; }
@@ -155,15 +186,78 @@ export default function AddTour() {
     try {
       if (isEdit && id) {
         await updateAdminTour(Number(id), payload);
+        navigate('/admin/tours');
       } else {
-        await createAdminTour(payload);
+        const created = await createAdminTour(payload);
+        // Redirect to edit mode so departures can be added right away
+        navigate(`/admin/tours/edit/${created.id}`);
       }
-      navigate('/admin/tours');
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setSaveError(msg ?? 'Lưu thất bại, vui lòng thử lại');
     } finally {
       setSaving(false);
+    }
+  }
+
+  /* ── departure handlers ── */
+  async function handleCreateDeparture() {
+    if (!newDep || !id) return;
+    if (!newDep.departureDate) { setDepError('Vui lòng chọn ngày khởi hành'); return; }
+    if (newDep.availableSlots <= 0) { setDepError('Số chỗ phải lớn hơn 0'); return; }
+    setDepSaving(true);
+    setDepError(null);
+    try {
+      const dep = await createAdminDeparture(Number(id), {
+        departureDate: newDep.departureDate,
+        availableSlots: newDep.availableSlots,
+        priceOverride: newDep.priceOverride ? Number(newDep.priceOverride) : null,
+        status: newDep.status,
+      });
+      setDepartures(prev => [...prev, dep]);
+      setNewDep(null);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setDepError(msg ?? 'Thêm lịch thất bại');
+    } finally {
+      setDepSaving(false);
+    }
+  }
+
+  async function handleUpdateDeparture() {
+    if (!editingDep || !id) return;
+    setDepSaving(true);
+    setDepError(null);
+    try {
+      const dep = await updateAdminDeparture(Number(id), editingDep.id, {
+        departureDate: editingDep.departureDate,
+        availableSlots: editingDep.availableSlots,
+        priceOverride: editingDep.priceOverride ? Number(editingDep.priceOverride) : null,
+        status: editingDep.status,
+      });
+      setDepartures(prev => prev.map(d => d.id === dep.id ? dep : d));
+      setEditingDep(null);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setDepError(msg ?? 'Cập nhật lịch thất bại');
+    } finally {
+      setDepSaving(false);
+    }
+  }
+
+  async function handleDeleteDeparture() {
+    if (!id || !deleteDepTarget) return;
+    setDeletingDepId(deleteDepTarget.id);
+    setDepError(null);
+    try {
+      await deleteAdminDeparture(Number(id), deleteDepTarget.id);
+      setDepartures(prev => prev.filter(d => d.id !== deleteDepTarget.id));
+      setDeleteDepTarget(null);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setDepError(msg ?? 'Xóa lịch thất bại');
+    } finally {
+      setDeletingDepId(null);
     }
   }
 
@@ -231,7 +325,30 @@ export default function AddTour() {
   const durationDisplay = durationDays > 0 ? `${durationDays} ngày ${durationNights} đêm` : '— Ngày';
 
   return (
-    <div className="flex-1 min-h-screen bg-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+    <>
+      <ConfirmDialog
+        open={Boolean(deleteDepTarget)}
+        title="Xóa lịch khởi hành"
+        message="Lịch khởi hành này sẽ bị gỡ khỏi tour. Hãy kiểm tra trước khi xóa nếu đã có booking liên quan."
+        confirmLabel="Xóa lịch"
+        cancelLabel="Hủy"
+        tone="danger"
+        pending={deleteDepTarget != null && deletingDepId === deleteDepTarget.id}
+        onCancel={() => {
+          if (deletingDepId == null) setDeleteDepTarget(null);
+        }}
+        onConfirm={() => void handleDeleteDeparture()}
+        detail={deleteDepTarget ? (
+          <div>
+            <p className="font-semibold text-on-surface">
+              {new Date(deleteDepTarget.departureDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
+            <p className="text-xs mt-1">Đã đặt: {deleteDepTarget.bookedSlots} / {deleteDepTarget.availableSlots} chỗ</p>
+          </div>
+        ) : undefined}
+      />
+
+      <div className="flex-1 min-h-screen bg-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between px-8 py-4 bg-white/90 backdrop-blur-xl border-b border-surface-container-low/50">
         <div className="flex items-center gap-6">
@@ -248,6 +365,11 @@ export default function AddTour() {
             <span className="text-xs font-bold text-error bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 max-w-xs truncate">
               {saveError}
             </span>
+          )}
+          {!isEdit && (
+            <p className="text-[10px] font-bold text-slate-400 hidden lg:block">
+              Sau khi lưu, bạn có thể thêm lịch khởi hành
+            </p>
           )}
           <button
             onClick={() => setIsPreviewOpen(!isPreviewOpen)}
@@ -359,25 +481,14 @@ export default function AddTour() {
               </div>
             </section>
 
-            {/* Tour Listing Display Section */}
+            {/* Pricing & Capacity */}
             <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
               <h3 className="text-lg font-black tracking-tight mb-2 flex items-center gap-2 text-on-surface">
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                Hiển thị trên danh sách tour
+                Giá & Thông số
               </h3>
-              <p className="text-xs text-on-surface-variant mb-6 font-medium">Các trường này quyết định cách tour hiển thị trên trang tìm kiếm và trang chủ.</p>
+              <p className="text-xs text-on-surface-variant mb-6 font-medium">Các thông số cơ bản hiển thị trên trang tìm kiếm và trang chi tiết tour.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Nhãn nổi bật (badge)</label>
-                  <select className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary/20 outline-none">
-                    <option value="">Không có nhãn</option>
-                    <option>Bán chạy nhất</option>
-                    <option>Mới</option>
-                    <option>Độc quyền</option>
-                    <option>Phiêu lưu</option>
-                    <option>Khuyến mãi</option>
-                  </select>
-                </div>
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">
                     Giá từ (VND) <span className="text-error">*</span>
@@ -388,6 +499,17 @@ export default function AddTour() {
                     className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
                     value={tourPrice}
                     onChange={(e) => setTourPrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Số khách tối đa</label>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="VD: 12"
+                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                    value={maxGuests}
+                    onChange={(e) => setMaxGuests(Math.max(1, Number(e.target.value)))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -411,44 +533,6 @@ export default function AddTour() {
                     value={durationNights}
                     onChange={(e) => setDurationNights(Math.max(0, Number(e.target.value)))}
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Số khách tối đa</label>
-                  <input
-                    type="number"
-                    min={1}
-                    placeholder="VD: 12"
-                    className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
-                    value={maxGuests}
-                    onChange={(e) => setMaxGuests(Math.max(1, Number(e.target.value)))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Giá gốc (để gạch ngang, nếu có)</label>
-                  <input type="number" placeholder="Để trống nếu không có khuyến mãi" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Nhãn giảm giá (VD: -15%)</label>
-                  <input type="text" placeholder="VD: -15%" className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Rating hiển thị</label>
-                  <div className="flex gap-2">
-                    <input type="number" step="0.1" min="1" max="5" placeholder="4.9" className="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none" />
-                    <div className="flex items-center gap-1 px-3 bg-surface-container-low rounded-xl text-secondary">
-                      {[1,2,3,4,5].map(s => <span key={s} className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>)}
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Tour nổi bật</label>
-                  <label className="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-xl cursor-pointer hover:bg-surface-container-high transition-colors">
-                    <input type="checkbox" className="w-4 h-4 text-primary rounded focus:ring-primary" />
-                    <div>
-                      <span className="text-sm font-bold text-on-surface">Hiển thị nổi bật ở trang chủ</span>
-                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">Tour sẽ xuất hiện trong section "Tour nổi bật"</p>
-                    </div>
-                  </label>
                 </div>
               </div>
             </section>
@@ -727,73 +811,268 @@ export default function AddTour() {
               </div>
             </section>
 
-            {/* Reviews Management Table */}
-            <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-on-surface">
-                  <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                  Góc đánh giá
-                </h3>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-low rounded-lg text-[10px] font-bold">
-                  <span className="material-symbols-outlined text-xs text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  4.9 (128)
+            {/* Departure Management (edit mode only) */}
+            {isEdit && (
+              <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-on-surface">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Lịch khởi hành
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-1 font-medium">
+                      Quản lý các ngày khởi hành, số chỗ và giá cho từng lịch.
+                    </p>
+                  </div>
+                  {!newDep && (
+                    <button
+                      onClick={() => { setNewDep({ departureDate: '', availableSlots: 12, priceOverride: '', status: 'OPEN' }); setDepError(null); }}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-xs">add</span>
+                      Thêm lịch
+                    </button>
+                  )}
+                </div>
+
+                {depError && (
+                  <div className="mb-4 px-4 py-2.5 rounded-xl bg-red-50 border border-red-100 text-sm font-bold text-error">
+                    {depError}
+                  </div>
+                )}
+
+                {/* New departure form */}
+                {newDep && (
+                  <div className="mb-6 p-5 rounded-2xl bg-surface-container-low/40 border border-primary/20">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Lịch mới</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ngày khởi hành *</label>
+                        <input
+                          type="date"
+                          value={newDep.departureDate}
+                          onChange={e => setNewDep({ ...newDep, departureDate: e.target.value })}
+                          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Số chỗ trống *</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={newDep.availableSlots}
+                          onChange={e => setNewDep({ ...newDep, availableSlots: Math.max(1, Number(e.target.value)) })}
+                          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Giá riêng (VND)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Để trống = giá tour"
+                          value={newDep.priceOverride}
+                          onChange={e => setNewDep({ ...newDep, priceOverride: e.target.value })}
+                          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-1 focus:ring-primary/20 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</label>
+                        <select
+                          value={newDep.status}
+                          onChange={e => setNewDep({ ...newDep, status: e.target.value as DepartureStatus })}
+                          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-1 focus:ring-primary/20 outline-none"
+                        >
+                          {(Object.keys(DEPARTURE_STATUS_LABEL) as DepartureStatus[]).map(s => (
+                            <option key={s} value={s}>{DEPARTURE_STATUS_LABEL[s]}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={handleCreateDeparture}
+                        disabled={depSaving}
+                        className="px-5 py-2 bg-primary text-white rounded-xl text-xs font-black hover:bg-primary/90 transition-all disabled:opacity-50"
+                      >
+                        {depSaving ? 'Đang lưu...' : 'Lưu lịch'}
+                      </button>
+                      <button
+                        onClick={() => { setNewDep(null); setDepError(null); }}
+                        className="px-5 py-2 text-xs font-black text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {departures.length === 0 && !newDep ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <span className="material-symbols-outlined text-3xl mb-2 block">event_upcoming</span>
+                    <p className="text-sm font-bold">Chưa có lịch khởi hành nào.</p>
+                    <p className="text-xs font-medium mt-1">Thêm ít nhất một lịch để khách có thể đặt chỗ.</p>
+                  </div>
+                ) : departures.length > 0 && (
+                  <div className="rounded-xl border border-surface-container-low overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-surface-container-low">
+                        <tr>
+                          <th className="px-5 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Ngày khởi hành</th>
+                          <th className="px-5 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Chỗ trống</th>
+                          <th className="px-5 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Đã đặt</th>
+                          <th className="px-5 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Giá riêng</th>
+                          <th className="px-5 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Trạng thái</th>
+                          <th className="px-5 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-container-low text-xs">
+                        {departures.map(dep => (
+                          editingDep?.id === dep.id ? (
+                            <tr key={dep.id} className="bg-primary/5">
+                              <td className="px-3 py-3">
+                                <input
+                                  type="date"
+                                  value={editingDep.departureDate}
+                                  onChange={e => setEditingDep({ ...editingDep, departureDate: e.target.value })}
+                                  className="bg-white rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary outline-none w-full"
+                                />
+                              </td>
+                              <td className="px-3 py-3">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={editingDep.availableSlots}
+                                  onChange={e => setEditingDep({ ...editingDep, availableSlots: Math.max(1, Number(e.target.value)) })}
+                                  className="bg-white rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary outline-none w-20"
+                                />
+                              </td>
+                              <td className="px-3 py-3 text-slate-500">{dep.bookedSlots}</td>
+                              <td className="px-3 py-3">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  placeholder="Giá tour"
+                                  value={editingDep.priceOverride}
+                                  onChange={e => setEditingDep({ ...editingDep, priceOverride: e.target.value })}
+                                  className="bg-white rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary outline-none w-28"
+                                />
+                              </td>
+                              <td className="px-3 py-3">
+                                <select
+                                  value={editingDep.status}
+                                  onChange={e => setEditingDep({ ...editingDep, status: e.target.value as DepartureStatus })}
+                                  className="bg-white rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary outline-none"
+                                >
+                                  {(Object.keys(DEPARTURE_STATUS_LABEL) as DepartureStatus[]).map(s => (
+                                    <option key={s} value={s}>{DEPARTURE_STATUS_LABEL[s]}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-3 py-3 text-right">
+                                <div className="flex justify-end gap-1">
+                                  <button
+                                    onClick={handleUpdateDeparture}
+                                    disabled={depSaving}
+                                    className="px-3 py-1 bg-primary text-white rounded-lg text-[10px] font-black hover:bg-primary/90 disabled:opacity-50"
+                                  >
+                                    {depSaving ? '...' : 'Lưu'}
+                                  </button>
+                                  <button
+                                    onClick={() => { setEditingDep(null); setDepError(null); }}
+                                    className="px-3 py-1 bg-surface-container-high rounded-lg text-[10px] font-black hover:bg-slate-200"
+                                  >
+                                    Hủy
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : (
+                            <tr key={dep.id} className="hover:bg-surface-container-low/20 transition-colors">
+                              <td className="px-5 py-4 font-bold">
+                                {new Date(dep.departureDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td className="px-5 py-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold">{dep.availableSlots}</span>
+                                  <div className="flex-1 h-1.5 bg-surface-container-low rounded-full max-w-[60px]">
+                                    <div
+                                      className="h-full bg-primary rounded-full"
+                                      style={{ width: `${Math.min(100, dep.availableSlots > 0 ? (dep.bookedSlots / dep.availableSlots) * 100 : 0)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-5 py-4 text-on-surface-variant">{dep.bookedSlots}</td>
+                              <td className="px-5 py-4">
+                                {dep.priceOverride != null ? (
+                                  <span className="font-bold text-primary">{Number(dep.priceOverride).toLocaleString('vi-VN')}₫</span>
+                                ) : (
+                                  <span className="text-slate-400 italic text-[10px]">Giá tour</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${DEPARTURE_STATUS_CLASS[dep.status]}`}>
+                                  {DEPARTURE_STATUS_LABEL[dep.status]}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                <div className="flex justify-end gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditingDep({
+                                        id: dep.id,
+                                        departureDate: dep.departureDate,
+                                        availableSlots: dep.availableSlots,
+                                        priceOverride: dep.priceOverride != null ? String(dep.priceOverride) : '',
+                                        status: dep.status,
+                                      });
+                                      setDepError(null);
+                                    }}
+                                    className="p-1.5 text-slate-300 hover:text-primary transition-all"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setDeleteDepTarget(dep);
+                                      setDepError(null);
+                                    }}
+                                    disabled={deletingDepId === dep.id}
+                                    className="p-1.5 text-slate-300 hover:text-error transition-all disabled:opacity-40"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">
+                                      {deletingDepId === dep.id ? 'progress_activity' : 'delete'}
+                                    </span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Create-mode departure hint */}
+            {!isEdit && (
+              <div className="px-6 py-4 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary text-lg mt-0.5">info</span>
+                <div>
+                  <p className="text-sm font-black text-primary">Lịch khởi hành</p>
+                  <p className="text-xs text-on-surface-variant font-medium mt-0.5">
+                    Sau khi lưu tour, bạn sẽ được chuyển sang trang chỉnh sửa để thêm lịch khởi hành. Khách không thể đặt chỗ nếu tour chưa có lịch.
+                  </p>
                 </div>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-surface-container-low">
-                <table className="w-full text-left">
-                  <thead className="bg-surface-container-low font-black text-[10px] uppercase tracking-widest text-slate-500">
-                    <tr>
-                      <th className="px-5 py-3">Khách hàng</th>
-                      <th className="px-5 py-3">Đánh giá</th>
-                      <th className="px-5 py-3">Nội dung</th>
-                      <th className="px-5 py-3">Trạng thái</th>
-                      <th className="px-5 py-3 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-surface-container-low text-xs">
-                    {[
-                      { name: 'Lê Minh Anh',   rating: 5, comment: 'Trải nghiệm tuyệt vời, HDV rất nhiệt tình!',    status: 'approved' },
-                      { name: 'David Wilson',   rating: 4, comment: 'Magical bay, stunning views and great food.',   status: 'pending'  },
-                      { name: 'Nguyễn Hà Linh', rating: 5, comment: 'Chuyến đi đáng nhớ nhất trong năm.',           status: 'hidden'   },
-                    ].map((review, i) => (
-                      <tr key={i} className="hover:bg-surface-container-low/20 transition-colors">
-                        <td className="px-5 py-4 font-bold">{review.name}</td>
-                        <td className="px-5 py-4">
-                          <div className="flex text-secondary gap-0.5">
-                            {[...Array(5)].map((_, j) => (
-                              <span key={j} className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: j < review.rating ? "'FILL' 1" : "'FILL' 0" }}>star</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 text-on-surface-variant max-w-[150px] truncate">{review.comment}</td>
-                        <td className="px-5 py-4">
-                          {review.status === 'approved' && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Đã hiển thị</span>}
-                          {review.status === 'pending'  && <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest">Đang chờ</span>}
-                          {review.status === 'hidden'   && <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">Đã ẩn</span>}
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex justify-end gap-1">
-                            {review.status !== 'approved' && (
-                              <button className="p-1.5 text-slate-300 hover:text-emerald-600 transition-all" title="Hiển thị">
-                                <span className="material-symbols-outlined text-sm">visibility</span>
-                              </button>
-                            )}
-                            {review.status !== 'hidden' && (
-                              <button className="p-1.5 text-slate-300 hover:text-primary transition-all" title="Ẩn">
-                                <span className="material-symbols-outlined text-sm">visibility_off</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            )}
+
           </div>
 
-          {/* Secondary Config Column (Preview) */}
+          {/* Preview Column */}
           <AnimatePresence>
             {isPreviewOpen && (
               <motion.aside
@@ -803,33 +1082,6 @@ export default function AddTour() {
                 className="hidden lg:block space-y-6"
               >
                 <div className="sticky top-28 space-y-6">
-                  <section className="p-8 rounded-3xl bg-surface-container-lowest shadow-sm border border-surface-container-low/50">
-                    <h3 className="text-sm font-black tracking-tight mb-4 text-on-surface uppercase tracking-widest">Danh mục</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {['Phiêu lưu', 'Sang trọng', 'Văn hóa', 'Sức khỏe'].map((cat, i) => (
-                        <button
-                          key={i}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                            cat === 'Phiêu lưu'
-                              ? 'bg-primary text-white shadow-lg shadow-primary/10'
-                              : 'bg-surface-container-high text-on-surface-variant hover:bg-slate-200'
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="mt-8 pt-6 border-t border-surface-container-low">
-                      <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className="w-10 h-5 rounded-full bg-slate-200 relative transition-all group-has-[:checked]:bg-primary">
-                          <input checked type="checkbox" className="sr-only peer" />
-                          <div className="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-all peer-checked:left-5.5 shadow-sm" />
-                        </div>
-                        <span className="text-xs font-bold text-on-surface-variant">Chuyến đi nổi bật</span>
-                      </label>
-                    </div>
-                  </section>
-
                   <section className="p-6 rounded-[2rem] bg-indigo-900 text-white overflow-hidden relative shadow-2xl shadow-indigo-900/20 group">
                     <div className="absolute -top-6 -right-6 p-4 opacity-5">
                       <span className="material-symbols-outlined text-[100px]" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
@@ -837,23 +1089,58 @@ export default function AddTour() {
                     <div className="relative z-10">
                       <p className="text-[8px] font-black uppercase tracking-[0.3em] text-blue-200 mb-4 px-1">Xem trước thẻ Tour</p>
                       <div className="aspect-[16/10] rounded-2xl bg-white/5 mb-4 overflow-hidden backdrop-blur-md border border-white/10">
-                        <img src={heroImage || 'https://picsum.photos/seed/santorini/800/600'} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                        <img
+                          src={heroImage || 'https://picsum.photos/seed/santorini/800/600'}
+                          alt="Preview"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
                       <h4 className="text-lg font-black tracking-tight leading-tight mb-3">
                         {tourTitle || <span className="opacity-40 italic font-normal text-sm">Tiêu đề tour sẽ hiện ở đây...</span>}
                       </h4>
                       <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-blue-100/60">
-                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">schedule</span>{durationDisplay}</span>
-                        <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-xs">payments</span>{tourPrice ? Number(tourPrice).toLocaleString('vi-VN') + '₫' : '—'}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-xs">schedule</span>
+                          {durationDisplay}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-xs">payments</span>
+                          {tourPrice ? Number(tourPrice).toLocaleString('vi-VN') + '₫' : '—'}
+                        </span>
                       </div>
                     </div>
                   </section>
+
+                  {isEdit && departures.length > 0 && (
+                    <section className="p-5 rounded-2xl bg-white border border-black/5 shadow-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                        {departures.length} lịch khởi hành
+                      </p>
+                      <div className="space-y-2">
+                        {departures.slice(0, 4).map(dep => (
+                          <div key={dep.id} className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-on-surface">
+                              {new Date(dep.departureDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${DEPARTURE_STATUS_CLASS[dep.status]}`}>
+                              {DEPARTURE_STATUS_LABEL[dep.status]}
+                            </span>
+                          </div>
+                        ))}
+                        {departures.length > 4 && (
+                          <p className="text-[10px] text-slate-400 font-medium">+{departures.length - 4} lịch khác</p>
+                        )}
+                      </div>
+                    </section>
+                  )}
                 </div>
               </motion.aside>
             )}
           </AnimatePresence>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

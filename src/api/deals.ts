@@ -1,7 +1,9 @@
 import apiClient from './client';
+import { unwrapApiResponse } from './types';
 
 export type DiscountType = 'FIXED' | 'PERCENTAGE';
 export type DisplayMode = 'COPY_CODE' | 'AUTO_APPLY';
+export type DealStatus = 'ACTIVE' | 'EXPIRED' | 'DRAFT';
 
 export interface Deal {
   id: number;
@@ -20,25 +22,27 @@ export interface Deal {
   usageCount: number;
   validFrom: string | null;
   validTo: string | null;
+  status: DealStatus;
 }
 
 export interface ApplyDealResult {
   dealId: number;
+  promoCode: string | null;
   discountAmount: number;
-  finalAmount: number;
+  message: string;
 }
 
 export async function getPublicDeals(): Promise<Deal[]> {
   const { data } = await apiClient.get('/deals/public');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function applyPromoCode(promoCode: string, subtotal: number): Promise<ApplyDealResult> {
   const { data } = await apiClient.get('/deals/apply', { params: { promoCode, subtotal } });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function findBestAutoApply(subtotal: number): Promise<ApplyDealResult | null> {
   const { data } = await apiClient.get('/deals/auto-apply', { params: { subtotal } });
-  return data.data ?? null;
+  return unwrapApiResponse(data) ?? null;
 }

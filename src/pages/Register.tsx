@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BRAND_NAME } from '../constants';
 import { register } from '../api/auth';
+import { extractApiErrorMessage } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
@@ -41,10 +42,7 @@ export default function Register() {
       });
       navigate('/', { replace: true });
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Đăng ký thất bại, vui lòng thử lại';
-      setError(msg);
+      setError(extractApiErrorMessage(err, 'Đăng ký thất bại, vui lòng thử lại'));
     } finally {
       setIsLoading(false);
     }

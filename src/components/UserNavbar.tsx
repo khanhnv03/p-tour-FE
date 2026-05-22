@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO } from '../constants';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'motion/react';
+import NotificationBell from './NotificationBell';
 
 const NAV_LINKS = [
   { label: 'Điểm đến', to: '/',        match: (p: string) => p === '/' },
@@ -10,7 +12,8 @@ const NAV_LINKS = [
   { label: 'Nhật ký', to: '/journal', match: (p: string) => p.startsWith('/journal') },
 ];
 
-/** "B21DCCN449 - Nguyễn Văn Khanh" → "Nguyễn Văn Khanh"; không có " - " thì giữ nguyên */
+const FALLBACK_AVATAR = 'https://picsum.photos/seed/user/200/200';
+
 function getDisplayName(raw: string): string {
   const idx = raw.indexOf(' - ');
   return idx >= 0 ? raw.slice(idx + 3).trim() : raw.trim();
@@ -18,10 +21,14 @@ function getDisplayName(raw: string): string {
 
 export default function UserNavbar() {
   const { pathname } = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const dispName = getDisplayName(user?.fullName || user?.email || '');
+  const avatarSrc = user?.avatarUrl || FALLBACK_AVATAR;
+  const roleLabel = isAdmin ? 'Quản trị viên' : 'Hạng thám hiểm';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -29,15 +36,25 @@ export default function UserNavbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <nav
-      className={`sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl transition-all duration-300 ${
+      className={`sticky top-0 z-50 w-full bg-white/90 backdrop-blur-xl transition-all duration-300 ${
         scrolled
           ? 'shadow-[0_8px_32px_0_rgba(25,28,29,0.12)]'
           : 'shadow-[0_2px_8px_0_rgba(25,28,29,0.04)]'
       }`}
     >
-      <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto font-medium tracking-tight">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group">
           <img
@@ -45,13 +62,13 @@ export default function UserNavbar() {
             alt="PTIT Logo"
             className="h-10 w-auto transition-transform duration-300 group-hover:scale-110"
           />
-          <span className="text-xl font-black tracking-tighter text-blue-900 dark:text-blue-50 transition-opacity duration-200 group-hover:opacity-75">
+          <span className="text-xl font-black tracking-tighter text-blue-900 transition-opacity duration-200 group-hover:opacity-75">
             {BRAND_NAME}
           </span>
         </Link>
 
         {/* Nav links */}
-        <div className="hidden md:flex items-center space-x-8 font-medium tracking-tight">
+        <div className="hidden md:flex items-center space-x-8">
           {NAV_LINKS.map(({ label, to, match }) => {
             const active = match(pathname);
             return (
@@ -60,13 +77,13 @@ export default function UserNavbar() {
                 to={to}
                 className={`relative py-1 group transition-colors duration-200 ${
                   active
-                    ? 'text-blue-700 dark:text-blue-400 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300'
+                    ? 'text-blue-700 font-bold'
+                    : 'text-slate-600 hover:text-blue-600'
                 }`}
               >
                 {label}
                 <span
-                  className={`absolute bottom-0 left-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300 ${
+                  className={`absolute bottom-0 left-0 h-0.5 bg-blue-600 rounded-full transition-all duration-300 ${
                     active ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}
                 />
@@ -76,24 +93,95 @@ export default function UserNavbar() {
         </div>
 
         {/* Auth section */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4">
           {isAuthenticated ? (
-            <>
-              <span className="text-slate-700 dark:text-slate-300 text-sm font-semibold hidden sm:inline">
-                {dispName}
-              </span>
-              <button
-                onClick={logout}
-                className="text-slate-600 dark:text-slate-400 px-4 py-2 text-sm font-semibold rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 active:scale-95 transition-all duration-200"
-              >
-                Đăng xuất
-              </button>
-            </>
+            <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
+              {/* Notification bell */}
+              <NotificationBell />
+
+              {/* Avatar + name + dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-3 pl-4 border-l border-slate-200 focus:outline-none group"
+                >
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {dispName}
+                    </p>
+                    <p className="text-xs text-slate-500 font-medium">{roleLabel}</p>
+                  </div>
+                  <img
+                    alt={dispName}
+                    src={avatarSrc}
+                    referrerPolicy="no-referrer"
+                    className={`w-10 h-10 rounded-full object-cover shadow-sm border-2 transition-colors ${
+                      isDropdownOpen
+                        ? 'border-primary'
+                        : 'border-transparent group-hover:border-primary/50'
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-[0_8px_32px_0_rgba(25,28,29,0.12)] border border-slate-100 py-2 z-50 overflow-hidden"
+                    >
+                      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 sm:hidden">
+                        <p className="text-sm font-bold text-slate-900">{dispName}</p>
+                        <p className="text-xs text-slate-500 font-medium">{roleLabel}</p>
+                      </div>
+
+                      <div className="py-2">
+                        {isAdmin ? (
+                          <>
+                            <Link
+                              onClick={() => setIsDropdownOpen(false)}
+                              to="/admin"
+                              className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
+                              Bảng điều khiển
+                            </Link>
+                          </>
+                        ) : (
+                          <>
+                            <Link
+                              onClick={() => setIsDropdownOpen(false)}
+                              to="/my-bookings"
+                              className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
+                              Chuyến đi của tôi
+                            </Link>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="border-t border-slate-100 pt-2">
+                        <button
+                          onClick={() => { setIsDropdownOpen(false); logout(); }}
+                          className="flex items-center gap-3 px-4 py-2 text-sm font-bold text-error hover:bg-red-50 transition-colors w-full text-left"
+                        >
+                          <span className="material-symbols-outlined text-lg">logout</span>
+                          Đăng xuất
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           ) : (
             <>
               <Link
                 to="/login"
-                className="text-slate-600 dark:text-slate-400 px-4 py-2 text-sm font-semibold rounded-lg hover:bg-slate-100/60 dark:hover:bg-slate-800/60 active:scale-95 transition-all duration-200"
+                className="text-slate-600 px-4 py-2 text-sm font-semibold rounded-lg hover:bg-slate-100/60 active:scale-95 transition-all duration-200"
               >
                 Đăng nhập
               </Link>

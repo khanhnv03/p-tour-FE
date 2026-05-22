@@ -1,4 +1,8 @@
 import apiClient from './client';
+import { unwrapApiResponse } from './types';
+
+export type UserRole = 'CUSTOMER' | 'ADMIN';
+export type UserStatus = 'ACTIVE' | 'BLOCKED';
 
 export interface UserProfile {
   id: number;
@@ -7,7 +11,10 @@ export interface UserProfile {
   phone: string | null;
   avatarUrl: string | null;
   address: string | null;
-  role: string;
+  role: UserRole;
+  status: UserStatus;
+  emailVerifiedAt: string | null;
+  createdAt: string;
 }
 
 export interface UpdateProfileRequest {
@@ -19,12 +26,12 @@ export interface UpdateProfileRequest {
 
 export async function getProfile(): Promise<UserProfile> {
   const { data } = await apiClient.get('/users/me');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function updateProfile(payload: UpdateProfileRequest): Promise<UserProfile> {
   const { data } = await apiClient.put('/users/me', payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export interface NotificationPreferences {
@@ -39,10 +46,10 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
   const { data } = await apiClient.get('/users/me/notification-preferences');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function updateNotificationPreferences(prefs: NotificationPreferences): Promise<NotificationPreferences> {
   const { data } = await apiClient.put('/users/me/notification-preferences', prefs);
-  return data.data;
+  return unwrapApiResponse(data);
 }

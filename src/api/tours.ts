@@ -1,4 +1,7 @@
 import apiClient from './client';
+import type { PageResponse } from './types';
+import { unwrapApiResponse } from './types';
+export type { PageResponse } from './types';
 
 export type TourDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type TourStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -46,17 +49,11 @@ export interface TourDetail extends TourSummary {
   }[];
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-}
-
 export interface SearchParams {
   keyword?: string;
   destinationId?: number;
+  date?: string;
+  guests?: number;
   difficulty?: TourDifficulty;
   minPrice?: number;
   maxPrice?: number;
@@ -68,25 +65,25 @@ export interface SearchParams {
 
 export async function searchTours(params: SearchParams = {}): Promise<PageResponse<TourSummary>> {
   const { data } = await apiClient.get('/tours', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getTourById(id: number): Promise<TourDetail> {
   const { data } = await apiClient.get(`/tours/${id}`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getTourBySlug(slug: string): Promise<TourDetail> {
   const { data } = await apiClient.get(`/tours/slug/${slug}`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getFeaturedTours(limit = 6): Promise<TourSummary[]> {
   const { data } = await apiClient.get('/tours/featured', { params: { limit } });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getPopularTours(limit = 6): Promise<TourSummary[]> {
   const { data } = await apiClient.get('/tours/popular', { params: { limit } });
-  return data.data;
+  return unwrapApiResponse(data);
 }

@@ -1,4 +1,5 @@
 import apiClient from './client';
+import { unwrapApiResponse } from './types';
 
 export interface LoginPayload {
   email: string;
@@ -31,17 +32,17 @@ export interface UserInfo {
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
   const { data } = await apiClient.post('/auth/login', payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
   const { data } = await apiClient.post('/auth/register', payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getMe(): Promise<UserInfo> {
   const { data } = await apiClient.get('/auth/me');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function forgotPassword(email: string): Promise<void> {

@@ -1,4 +1,6 @@
 import apiClient from './client';
+import type { PageResponse } from './types';
+import { unwrapApiResponse } from './types';
 
 export interface Destination {
   id: number;
@@ -23,10 +25,10 @@ export interface SaveDestinationRequest {
 
 export async function getFeaturedDestinations(): Promise<Destination[]> {
   const { data } = await apiClient.get('/destinations/featured');
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
-export async function listDestinations(params: { keyword?: string; page?: number; size?: number } = {}): Promise<{ content: Destination[]; totalElements: number; totalPages: number }> {
+export async function listDestinations(params: { keyword?: string; page?: number; size?: number } = {}): Promise<PageResponse<Destination>> {
   const { data } = await apiClient.get('/destinations', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }

@@ -1,22 +1,22 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO, BRAND_FOOTER_DESC } from '../constants';
 
 export default function AboutUs() {
   return (
     <div className="bg-surface text-on-surface antialiased font-sans min-h-screen flex flex-col">
-      <header className="docked full-width top-0 sticky z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">
+      <header className="docked full-width top-0 sticky z-50 bg-white/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(25,28,29,0.06)]">
         <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
           <Link to="/" className="flex items-center gap-3">
             <img src={BRAND_LOGO} alt="PTIT Logo" className="h-10 w-auto" />
-            <div className="text-xl font-black tracking-tighter text-blue-900 dark:text-blue-50">
+            <div className="text-xl font-black tracking-tighter text-blue-900">
               {BRAND_NAME}
             </div>
           </Link>
           <nav className="hidden md:flex items-center space-x-8 font-medium tracking-tight">
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/">Điểm đến</Link>
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/tours">Tour</Link>
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/deals">Ưu đãi</Link>
-            <Link className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/journal">Nhật ký</Link>
+            <Link className="text-slate-600 hover:text-blue-600 transition-colors" to="/">Điểm đến</Link>
+            <Link className="text-slate-600 hover:text-blue-600 transition-colors" to="/tours">Tour</Link>
+            <Link className="text-slate-600 hover:text-blue-600 transition-colors" to="/deals">Ưu đãi</Link>
+            <Link className="text-slate-600 hover:text-blue-600 transition-colors" to="/journal">Nhật ký</Link>
           </nav>
           <div className="flex items-center space-x-4">
             <Link to="/login" className="text-slate-600 font-semibold px-4 py-2 hover:bg-slate-100/50 rounded-lg transition-all scale-95 active:scale-90">Đăng nhập</Link>
@@ -227,11 +227,11 @@ export default function AboutUs() {
         </section>
       </main>
 
-      <footer className="w-full mt-auto bg-slate-50 dark:bg-slate-950 font-sans text-sm leading-relaxed border-t border-slate-200 dark:border-slate-800">
+      <footer className="w-full mt-auto bg-slate-50 font-sans text-sm leading-relaxed border-t border-slate-200">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto">
           <div className="space-y-6">
-            <div className="text-xl font-bold text-blue-900 dark:text-blue-100">{BRAND_NAME}</div>
-            <p className="text-slate-500 dark:text-slate-400">{BRAND_FOOTER_DESC}</p>
+            <div className="text-xl font-bold text-blue-900">{BRAND_NAME}</div>
+            <p className="text-slate-500">{BRAND_FOOTER_DESC}</p>
             <div className="flex gap-4">
               <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">social_leaderboard</span>
               <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">photo_camera</span>
@@ -239,24 +239,24 @@ export default function AboutUs() {
             </div>
           </div>
           <div>
-            <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-6">Khám phá</h4>
+            <h4 className="font-bold text-blue-900 mb-6">Khám phá</h4>
             <ul className="space-y-4">
-              <li><Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/">Điểm đến Phổ biến</Link></li>
-              <li><Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/tours">Tour theo Chủ đề</Link></li>
-              <li><Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/journal">Nhật ký Hành trình</Link></li>
+              <li><Link className="text-slate-500 hover:text-blue-600 transition-colors" to="/">Điểm đến Phổ biến</Link></li>
+              <li><Link className="text-slate-500 hover:text-blue-600 transition-colors" to="/tours">Tour theo Chủ đề</Link></li>
+              <li><Link className="text-slate-500 hover:text-blue-600 transition-colors" to="/journal">Nhật ký Hành trình</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-6">Công ty</h4>
+            <h4 className="font-bold text-blue-900 mb-6">Công ty</h4>
             <ul className="space-y-4">
-              <li><Link className="text-blue-700 dark:text-blue-400 underline" to="/about">Về chúng tôi</Link></li>
-              <li><Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/journal">Nhật ký</Link></li>
-              <li><Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" to="/careers">Nghề nghiệp</Link></li>
+              <li><Link className="text-blue-700 underline" to="/about">Về chúng tôi</Link></li>
+              <li><Link className="text-slate-500 hover:text-blue-600 transition-colors" to="/journal">Nhật ký</Link></li>
+              <li><Link className="text-slate-500 hover:text-blue-600 transition-colors" to="/careers">Nghề nghiệp</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-6">Newsletter</h4>
-            <p className="text-slate-500 dark:text-slate-400 mb-4">Đăng ký để nhận những thông tin du lịch đặc quyền.</p>
+            <h4 className="font-bold text-blue-900 mb-6">Newsletter</h4>
+            <p className="text-slate-500 mb-4">Đăng ký để nhận những thông tin du lịch đặc quyền.</p>
             <form className="flex flex-col gap-2" onSubmit={(e) => e.preventDefault()}>
               <input className="bg-white border-0 ring-1 ring-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Email của bạn" type="email" />
               <button className="signature-gradient text-white px-4 py-2 rounded-lg font-bold">Đăng ký</button>
@@ -264,11 +264,11 @@ export default function AboutUs() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-8 pb-12">
-          <div className="pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between gap-4">
-            <p className="text-slate-500 dark:text-slate-400">© 2026 {BRAND_NAME}. Vượt ra ngoài giới hạn.</p>
+          <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between gap-4">
+            <p className="text-slate-500">© 2026 {BRAND_NAME}. Vượt ra ngoài giới hạn.</p>
             <div className="flex gap-8">
-              <Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600" to="/privacy">Chính sách Bảo mật</Link>
-              <Link className="text-slate-500 dark:text-slate-400 hover:text-blue-600" to="/terms">Điều khoản Dịch vụ</Link>
+              <Link className="text-slate-500 hover:text-blue-600" to="/privacy">Chính sách Bảo mật</Link>
+              <Link className="text-slate-500 hover:text-blue-600" to="/terms">Điều khoản Dịch vụ</Link>
             </div>
           </div>
         </div>

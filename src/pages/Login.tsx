@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { BRAND_NAME } from '../constants';
 import { login } from '../api/auth';
+import { extractApiErrorMessage } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
@@ -18,6 +19,15 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const from = (location.state as { from?: string })?.from || '/';
+  const searchParams = new URLSearchParams(location.search);
+  const resetStatus = searchParams.get('reset');
+  const oauthError = searchParams.get('error');
+  const notice =
+    resetStatus === 'success'
+      ? 'Mật khẩu đã được đặt lại. Bạn có thể đăng nhập bằng mật khẩu mới.'
+      : oauthError
+        ? oauthError
+        : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +43,7 @@ export default function Login() {
       });
       navigate(res.role === 'ADMIN' ? '/admin' : from, { replace: true });
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Email hoặc mật khẩu không đúng';
-      setError(msg);
+      setError(extractApiErrorMessage(err, 'Email hoặc mật khẩu không đúng'));
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +119,18 @@ export default function Login() {
           </div>
 
           {/* Error message */}
+          {notice && (
+            <div className={`flex items-center gap-3 p-4 rounded-xl text-sm font-medium ${
+              resetStatus === 'success'
+                ? 'bg-green-50 border border-green-200 text-green-700'
+                : 'bg-amber-50 border border-amber-200 text-amber-700'
+            }`}>
+              <span className="material-symbols-outlined text-base">
+                {resetStatus === 'success' ? 'check_circle' : 'info'}
+              </span>
+              {notice}
+            </div>
+          )}
           {error && (
             <div className="flex items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-xl text-error text-sm font-medium">
               <span className="material-symbols-outlined text-base">error</span>

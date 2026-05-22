@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BRAND_LOGO } from '../constants';
 import { resetPassword } from '../api/auth';
+import { extractApiErrorMessage } from '../api/types';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -29,8 +30,8 @@ export default function ResetPassword() {
     try {
       await resetPassword(token, newPassword);
       navigate('/login?reset=success', { replace: true });
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Token không hợp lệ hoặc đã hết hạn.');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Token không hợp lệ hoặc đã hết hạn.'));
     } finally {
       setLoading(false);
     }

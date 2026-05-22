@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getMe, type UserInfo } from '../api/auth';
+import { ACCESS_TOKEN_KEY } from '../api/client';
 
 interface AuthContextType {
   user: UserInfo | null;
@@ -8,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   setAuth: (token: string, user: UserInfo) => void;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 }
 
@@ -15,23 +17,28 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem(ACCESS_TOKEN_KEY));
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('access_token');
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
     setToken(null);
     setUser(null);
   }, []);
 
   const setAuth = useCallback((newToken: string, newUser: UserInfo) => {
-    localStorage.setItem('access_token', newToken);
+    localStorage.setItem(ACCESS_TOKEN_KEY, newToken);
     setToken(newToken);
     setUser(newUser);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const userInfo = await getMe();
+    setUser(userInfo);
+  }, []);
+
   useEffect(() => {
-    const storedToken = localStorage.getItem('access_token');
+    const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
     if (!storedToken) {
       setIsLoading(false);
       return;
@@ -54,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!token && !!user,
         isAdmin: user?.role === 'ADMIN',
         setAuth,
+        refreshUser,
         logout,
       }}
     >

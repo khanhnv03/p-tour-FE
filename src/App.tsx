@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 
@@ -16,33 +16,26 @@ import Register from './pages/Register';
 import OAuth2Callback from './pages/OAuth2Callback';
 import MainLayout from './layouts/MainLayout';
 import UserLayout from './layouts/UserLayout';
-import Dashboard from './pages/DashboardNew';
-import Analytics from './pages/AnalyticsNew';
-import Settings from './pages/Settings';
+import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import MyBookings from './pages/MyBookings';
 import NotFound from './pages/NotFound';
 import AboutUs from './pages/AboutUs';
-import ContactUs from './pages/ContactUs';
 import Journal from './pages/Journal';
 import Deals from './pages/Deals';
 import OrderDetails from './pages/OrderDetails';
-import ManageTours from './pages/ManageToursNew';
+import ManageTours from './pages/ManageTours';
 import Success from './pages/Success';
-import ManageBlog from './pages/ManageBlogNew';
-import ManageCustomers from './pages/ManageCustomersNew';
-import ManageOrders from './pages/ManageOrdersNew';
+import ManageCustomers from './pages/ManageCustomers';
+import ManageOrders from './pages/ManageOrders';
 import AddTour from './pages/AddTour';
-import EditBlogPost from './pages/EditBlogPost';
-import ManageDeals from './pages/ManageDealsNew';
+import ManageDeals from './pages/ManageDeals';
 import BlogPost from './pages/BlogPost';
-import CreateBlogPost from './pages/CreateBlogPost';
-import UserProfile from './pages/UserProfile';
 import BookingDetails from './pages/BookingDetails';
 import DealEditor from './pages/DealEditor';
 import CustomerDetails from './pages/CustomerDetails';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Wishlist from './pages/Wishlist';
 
 export default function App() {
   return (
@@ -60,9 +53,8 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={<AboutUs />} />
-          <Route path="/contact" element={<ContactUs />} />
           <Route path="/journal" element={<Journal />} />
-          <Route path="/journal/:id" element={<BlogPost />} />
+          <Route path="/journal/:slug" element={<BlogPost />} />
           <Route path="/deals" element={<Deals />} />
 
           {/* Protected: checkout requires auth */}
@@ -73,8 +65,7 @@ export default function App() {
           {/* Protected: user portal */}
           <Route element={<ProtectedRoute />}>
             <Route element={<UserLayout />}>
-              <Route path="/profile" element={<UserProfile />} />
-              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/account" element={<Navigate to="/my-bookings" replace />} />
               <Route path="/my-bookings" element={<MyBookings />} />
               <Route path="/my-bookings/:id" element={<BookingDetails />} />
             </Route>
@@ -89,10 +80,6 @@ export default function App() {
               <Route path="tours/edit/:id" element={<AddTour />} />
               <Route path="destinations" element={<ManageTours />} />
               <Route path="analytics" element={<Analytics />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="blog" element={<ManageBlog />} />
-              <Route path="blog/new" element={<CreateBlogPost />} />
-              <Route path="blog/edit/:id" element={<EditBlogPost />} />
               <Route path="customers" element={<ManageCustomers />} />
               <Route path="customers/:id" element={<CustomerDetails />} />
               <Route path="orders" element={<ManageOrders />} />

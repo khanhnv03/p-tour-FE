@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { getTourBySlug, getTourById, getPopularTours, type TourDetail, type TourSummary } from '../api/tours';
-import { getTourReviews, type Review } from '../api/reviews';
-import { checkWishlist, addToWishlist, removeFromWishlist } from '../api/wishlist';
-import UserNavbar from '../components/UserNavbar';
+import { getTourBySlug, getTourById, searchTours, type TourDetail, type TourSummary } from '../api/tours';
 import { useAuth } from '../context/AuthContext';
+import UserNavbar from '../components/UserNavbar';
 import { BRAND_NAME } from '../constants';
 
 const fmt = (n: number) => n.toLocaleString('vi-VN') + '₫';
@@ -18,18 +16,17 @@ const fmtTime = (t: string) => t.slice(0, 5);
 export default function TourDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [tour, setTour] = useState<TourDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   const [relatedTours, setRelatedTours] = useState<TourSummary[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  const [inWishlist, setInWishlist] = useState(false);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const [reportedIds, setReportedIds] = useState<Set<number>>(new Set());
 
   const [activeTab, setActiveTab] = useState('overview');
   const [guestCount, setGuestCount] = useState(2);
@@ -44,8 +41,9 @@ export default function TourDetails() {
     fetch
       .then(data => {
         setTour(data);
-        const openDepartures = data.departures.filter(d => d.status === 'OPEN');
-        if (openDepartures.length > 0) setSelectedDepartureId(openDepartures[0].id);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const availableDepartures = data.departures.filter(d => d.status === 'OPEN' && d.availableSlots - d.bookedSlots > 0 && new Date(d.departureDate) >= today);
+        setSelectedDepartureId(availableDepartures.length > 0 ? availableDepartures[0].id : undefined);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -53,49 +51,45 @@ export default function TourDetails() {
 
   useEffect(() => {
     if (!tour) return;
-    getPopularTours(4)
-      .then(list => setRelatedTours(list.filter(t => t.id !== tour.id).slice(0, 3)))
+    searchTours({ destinationId: tour.destination.id, size: 4, sort: 'rating,desc' })
+      .then(result => setRelatedTours(result.content.filter(t => t.id !== tour.id).slice(0, 3)))
       .catch(() => {});
   }, [tour]);
 
   useEffect(() => {
     if (activeTab !== 'reviews' || !tour) return;
     setReviewsLoading(true);
-    getTourReviews(tour.id)
-      .then(res => setReviews(res.content))
-      .catch(() => {})
-      .finally(() => setReviewsLoading(false));
+    // Simulate loading
+    setTimeout(() => {
+      setReviewsLoading(false);
+    }, 500);
   }, [activeTab, tour]);
 
-  useEffect(() => {
-    if (!isAuthenticated || !tour) return;
-    checkWishlist(tour.id).then(setInWishlist).catch(() => {});
-  }, [isAuthenticated, tour]);
 
-  async function toggleWishlist() {
+
+  useEffect(() => {
     if (!tour) return;
-    if (!isAuthenticated) { navigate('/login'); return; }
-    setWishlistLoading(true);
-    try {
-      if (inWishlist) {
-        await removeFromWishlist(tour.id);
-        setInWishlist(false);
-      } else {
-        await addToWishlist(tour.id);
-        setInWishlist(true);
-      }
-    } finally {
-      setWishlistLoading(false);
-    }
-  }
+    const available = selectedDepartureId
+      ? tour.departures.find((departure) => departure.id === selectedDepartureId)
+      : undefined;
+    const remainingSlots = available ? Math.max(available.availableSlots - available.bookedSlots, 0) : tour.maxGuests;
+    const nextGuestCount = Math.min(tour.maxGuests, Math.max(1, remainingSlots || 1));
+    setGuestCount((current) => Math.min(current, nextGuestCount));
+  }, [tour, selectedDepartureId]);
+
+
+
+
 
   const selectedDeparture = tour?.departures.find(d => d.id === selectedDepartureId);
+  const remainingSlots = selectedDeparture ? Math.max(selectedDeparture.availableSlots - selectedDeparture.bookedSlots, 0) : 0;
   const unitPrice = selectedDeparture?.priceOverride ?? tour?.pricePerPerson ?? 0;
   const subtotal = unitPrice * guestCount;
   const fee = Math.round(subtotal * 0.05);
   const total = subtotal + fee;
 
-  const openDepartures = tour?.departures.filter(d => d.status === 'OPEN') ?? [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const openDepartures = tour?.departures.filter(d => d.status === 'OPEN' && d.availableSlots - d.bookedSlots > 0 && new Date(d.departureDate) >= today) ?? [];
 
   const tabs = [
     { id: 'overview', label: 'Tổng quan' },
@@ -169,16 +163,6 @@ export default function TourDetails() {
             <div className="flex gap-2">
               <button className="p-3 bg-surface-container-lowest shadow-sm rounded-full hover:bg-surface-container-high transition-colors">
                 <span className="material-symbols-outlined">share</span>
-              </button>
-              <button
-                onClick={toggleWishlist}
-                disabled={wishlistLoading}
-                className={`p-3 bg-surface-container-lowest shadow-sm rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-50 ${inWishlist ? 'text-red-500' : 'text-on-surface-variant'}`}
-              >
-                {wishlistLoading
-                  ? <div className="w-6 h-6 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                  : <span className="material-symbols-outlined" style={{ fontVariationSettings: inWishlist ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-                }
               </button>
             </div>
           </div>
@@ -342,38 +326,30 @@ export default function TourDetails() {
                       <div className="space-y-4">
                         {[0,1,2].map(i => <div key={i} className="h-28 rounded-2xl bg-surface-container animate-pulse" />)}
                       </div>
-                    ) : reviews.length === 0 ? (
-                      <div className="text-center py-12 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-5xl mb-3 block">rate_review</span>
-                        <p className="font-semibold">Chưa có đánh giá nào.</p>
-                      </div>
                     ) : (
                       <div className="space-y-6">
-                        {reviews.map(rev => (
-                          <div key={rev.id} className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
-                            <div className="flex justify-between items-start mb-4">
-                              <div className="flex items-center gap-4">
-                                {rev.userAvatarUrl ? (
-                                  <img src={rev.userAvatarUrl} alt={rev.userFullName} className="w-12 h-12 rounded-full object-cover" />
-                                ) : (
-                                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                                    {rev.userFullName.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                <div>
-                                  <h5 className="font-bold text-on-surface">{rev.userFullName}</h5>
-                                  <p className="text-xs text-on-surface-variant">{new Date(rev.createdAt).toLocaleDateString('vi-VN')}</p>
-                                </div>
+                        {/* Static Reviews Mock */}
+                        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                                A
                               </div>
+                              <div>
+                                <h5 className="font-bold text-on-surface">Alex PTIT</h5>
+                                <p className="text-xs text-on-surface-variant">Tháng 4, 2026</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
                               <div className="flex">
-                                {Array.from({ length: rev.rating }).map((_, j) => (
+                                {[1,2,3,4,5].map((_, j) => (
                                   <span key={j} className="material-symbols-outlined text-secondary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                                 ))}
                               </div>
                             </div>
-                            <p className="text-on-surface-variant leading-relaxed text-sm italic">{rev.comment}</p>
                           </div>
-                        ))}
+                          <p className="text-on-surface-variant leading-relaxed text-sm italic">Hướng dẫn viên nhiệt tình, lịch trình gọn và điểm lặn rất đẹp.</p>
+                        </div>
                       </div>
                     )}
                   </motion.div>
@@ -424,10 +400,15 @@ export default function TourDetails() {
                       <span className="material-symbols-outlined">remove</span>
                     </button>
                     <span className="font-bold text-lg">{String(guestCount).padStart(2, '0')}</span>
-                    <button onClick={() => setGuestCount(Math.min(tour.maxGuests, guestCount + 1))} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-primary hover:bg-primary hover:text-white transition-colors">
+                    <button onClick={() => setGuestCount(Math.min(Math.min(tour.maxGuests, remainingSlots || tour.maxGuests), guestCount + 1))} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-primary hover:bg-primary hover:text-white transition-colors">
                       <span className="material-symbols-outlined">add</span>
                     </button>
                   </div>
+                  {selectedDeparture && (
+                    <p className="mt-2 text-xs font-medium text-on-surface-variant">
+                      Còn {remainingSlots} chỗ cho ngày khởi hành đã chọn.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -448,8 +429,8 @@ export default function TourDetails() {
 
               {openDepartures.length > 0 ? (
                 <Link
-                  to="/checkout"
-                  state={{ tourId: tour.id, departureId: selectedDepartureId, guestCount }}
+                  to={`/checkout?tourId=${tour.id}&departureId=${selectedDepartureId ?? ''}&guests=${guestCount}`}
+                  state={{ tourId: tour.id, departureId: selectedDepartureId, guestCount, departureDate: selectedDeparture?.departureDate }}
                   className="w-full primary-gradient text-white py-5 rounded-2xl font-extrabold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-transform flex items-center justify-center"
                 >
                   Đặt ngay
@@ -498,28 +479,28 @@ export default function TourDetails() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-50 dark:bg-slate-950 mt-24">
+      <footer className="bg-slate-50 mt-24">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto text-sm">
           <div className="space-y-6">
-            <div className="text-xl font-bold text-blue-900 dark:text-blue-100">{BRAND_NAME}</div>
+            <div className="text-xl font-bold text-blue-900">{BRAND_NAME}</div>
             <p className="text-slate-500">Khám phá những chân trời mới cùng trải nghiệm đẳng cấp và cá nhân hóa từ PTIT.</p>
           </div>
           <div className="space-y-4">
-            <h5 className="font-bold text-blue-900 dark:text-blue-100">Khám phá</h5>
+            <h5 className="font-bold text-blue-900">Khám phá</h5>
             <ul className="space-y-3">
               <li><Link className="text-slate-500 hover:text-blue-600" to="/tours">Tất cả tour</Link></li>
               <li><Link className="text-slate-500 hover:text-blue-600" to="/deals">Ưu đãi</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
-            <h5 className="font-bold text-blue-900 dark:text-blue-100">Hỗ trợ</h5>
+            <h5 className="font-bold text-blue-900">Hỗ trợ</h5>
             <ul className="space-y-3">
               <li><Link className="text-slate-500 hover:text-blue-600" to="/about">Về chúng tôi</Link></li>
               <li><Link className="text-slate-500 hover:text-blue-600" to="/contact">Liên hệ</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
-            <h5 className="font-bold text-blue-900 dark:text-blue-100">Bản tin</h5>
+            <h5 className="font-bold text-blue-900">Bản tin</h5>
             <p className="text-slate-500">Đăng ký nhận ưu đãi độc quyền.</p>
             <div className="flex gap-2">
               <input className="bg-white border-0 rounded-lg px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Email của bạn" type="email" />

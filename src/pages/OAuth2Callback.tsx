@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getMe } from '../api/auth';
+import { ACCESS_TOKEN_KEY } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 export default function OAuth2Callback() {
@@ -21,7 +22,7 @@ export default function OAuth2Callback() {
       return;
     }
 
-    localStorage.setItem('access_token', token);
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
     getMe()
       .then((user) => {
         setAuth(token, user);

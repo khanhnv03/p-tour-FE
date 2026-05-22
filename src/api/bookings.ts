@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { PageResponse } from './tours';
+import { unwrapApiResponse, type PageResponse } from './types';
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
@@ -42,35 +42,43 @@ export interface CreateBookingPayload {
 export interface Ticket {
   bookingCode: string;
   tourTitle: string;
+  tourCoverImage: string | null;
+  destinationName: string;
   departureDate: string;
+  durationDays: number;
+  durationNights: number;
   guestCount: number;
-  contactName: string;
-  contactEmail: string;
+  totalAmount: number;
+  status: BookingStatus;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
   downloadUrl: string;
   qrCodeData: string;
+  issuedAt: string;
 }
 
 export async function createBooking(payload: CreateBookingPayload): Promise<Booking> {
   const { data } = await apiClient.post('/bookings', payload);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getMyBookings(params: { page?: number; size?: number } = {}): Promise<PageResponse<Booking>> {
   const { data } = await apiClient.get('/bookings/my', { params });
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getBooking(id: number): Promise<Booking> {
   const { data } = await apiClient.get(`/bookings/${id}`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function cancelBooking(id: number): Promise<Booking> {
   const { data } = await apiClient.patch(`/bookings/${id}/cancel`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
 
 export async function getTicket(id: number): Promise<Ticket> {
   const { data } = await apiClient.get(`/bookings/${id}/ticket`);
-  return data.data;
+  return unwrapApiResponse(data);
 }
