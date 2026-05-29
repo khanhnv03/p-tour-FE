@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import UserNavbar from '../components/UserNavbar';
 import { BRAND_NAME } from '../constants';
-import { MOCK_BLOG_POSTS, type BlogPostDetail } from '../api/blogData';
+import { getBlogPostBySlug, type BlogPostDetail } from '../api/blogData';
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '';
@@ -34,19 +34,12 @@ export default function BlogPost() {
     
     setLoading(true);
     setError(null);
-    
-    // Simulate network request
-    const timer = setTimeout(() => {
-      const found = MOCK_BLOG_POSTS.find(p => p.slug === currentSlug);
-      if (found) {
-        setPost(found);
-      } else {
-        setError('Không tìm thấy bài viết');
-      }
-      setLoading(false);
-    }, 300);
-    
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    getBlogPostBySlug(currentSlug)
+      .then((data) => { if (!cancelled) setPost(data); })
+      .catch(() => { if (!cancelled) setError('Không tìm thấy bài viết'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [currentSlug]);
 
   const minutes = useMemo(() => (post ? readMinutes(post.content) : 1), [post]);

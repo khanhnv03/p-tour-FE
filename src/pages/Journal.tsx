@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_FOOTER_DESC, BRAND_NAME } from '../constants';
 import UserNavbar from '../components/UserNavbar';
-import { MOCK_BLOG_POSTS, type BlogPostSummary } from '../api/blogData';
+import { getBlogPosts, type BlogPostSummary } from '../api/blogData';
 import type { PageResponse } from '../api/tours';
 
 const PAGE_SIZE = 9;
@@ -31,28 +31,10 @@ export default function Journal() {
   const fetchPosts = useCallback(() => {
     setLoading(true);
     setError(null);
-    try {
-      const filtered = keyword 
-        ? MOCK_BLOG_POSTS.filter(post => post.title.toLowerCase().includes(keyword.toLowerCase()))
-        : MOCK_BLOG_POSTS;
-      
-      const totalElements = filtered.length;
-      const totalPages = Math.ceil(totalElements / PAGE_SIZE) || 1;
-      const content = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-      
-      setPostsPage({
-        content,
-        page,
-        size: PAGE_SIZE,
-        totalElements,
-        totalPages,
-        last: page >= totalPages - 1
-      });
-    } catch (err) {
-      setError('Không thể tải nhật ký');
-    } finally {
-      setLoading(false);
-    }
+    getBlogPosts({ keyword: keyword || undefined, page, size: PAGE_SIZE })
+      .then((result) => setPostsPage(result))
+      .catch(() => setError('Không thể tải nhật ký'))
+      .finally(() => setLoading(false));
   }, [keyword, page]);
 
   useEffect(() => {

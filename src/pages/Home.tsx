@@ -6,6 +6,7 @@ import { getFeaturedTours, getPopularTours, type TourSummary } from '../api/tour
 import { getFeaturedDestinations, type Destination } from '../api/destinations';
 import { getPublicDeals, type Deal } from '../api/deals';
 import { extractApiErrorMessage } from '../api/types';
+import { subscribeNewsletter } from '../api/newsletter';
 
 const fmt = (n: number) => n.toLocaleString('vi-VN') + '₫';
 
@@ -64,11 +65,11 @@ export default function Home() {
     setNewsletterMessage(null);
     setNewsletterLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await subscribeNewsletter(newsletterEmail.trim());
       setNewsletterMessage({ ok: true, text: 'Đăng ký thành công. Ưu đãi mới sẽ được gửi tới email của bạn.' });
       setNewsletterEmail('');
     } catch (error) {
-      setNewsletterMessage({ ok: false, text: 'Không thể đăng ký newsletter lúc này.' });
+      setNewsletterMessage({ ok: false, text: extractApiErrorMessage(error, 'Không thể đăng ký newsletter lúc này.') });
     } finally {
       setNewsletterLoading(false);
     }

@@ -3,19 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { API_ORIGIN } from '../api/client';
 import { cancelBooking, getBooking, getTicket, type Booking, type Ticket } from '../api/bookings';
 import { extractApiErrorMessage } from '../api/types';
-export interface Review {
-  id: number;
-  userId: number;
-  tourId: number;
-  bookingId: number;
-  rating: number;
-  comment?: string;
-  reviewStatus: 'PENDING' | 'APPROVED' | 'HIDDEN';
-  userFullName: string;
-  userAvatarUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { submitReview, getReviewByBooking, type Review } from '../api/reviews';
 import { findOrderByBooking, type Order } from '../api/orders';
 import { getTourById, type TourDetail } from '../api/tours';
 
@@ -145,8 +133,12 @@ export default function BookingDetails() {
         }
 
         if (bookingData.status === 'COMPLETED') {
-          // Simulate fetching existing review (none exists)
-          if (m) setExistingReview(null);
+          try {
+            const reviewData = await getReviewByBooking(bookingData.id);
+            if (m) setExistingReview(reviewData);
+          } catch {
+            if (m) setExistingReview(null);
+          }
         }
 
         if (m) setTimeout(() => setMounted(true), 60);
@@ -188,23 +180,16 @@ export default function BookingDetails() {
     setReviewSubmitting(true);
     setReviewMessage(null);
     try {
-      await new Promise(r => setTimeout(r, 1000));
-      const submitted: Review = {
-        id: Math.floor(Math.random() * 10000),
-        userId: 1,
-        tourId: booking.tourId,
+      const submitted = await submitReview({
         bookingId: booking.id,
         rating,
-        comment: comment.trim(),
-        reviewStatus: 'PENDING',
-        userFullName: 'Khách hàng',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+        comment: comment.trim() || undefined,
+      });
       setExistingReview(submitted);
       setComment('');
+      setReviewMessage({ ok: true, text: 'Đánh giá đã được gửi và đang chờ duyệt.' });
     } catch (reviewError: unknown) {
-      setReviewMessage({ ok: false, text: 'Không thể gửi đánh giá.' });
+      setReviewMessage({ ok: false, text: extractApiErrorMessage(reviewError, 'Không thể gửi đánh giá.') });
     } finally {
       setReviewSubmitting(false);
     }
