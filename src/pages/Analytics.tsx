@@ -272,17 +272,24 @@ export default function AnalyticsNew() {
           <h2 className="text-sm font-black text-on-surface tracking-tight mb-1">Cơ cấu booking</h2>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4">Theo trạng thái trong kỳ</p>
           <div className="flex-1 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={bookingBreakdown} cx="50%" cy="46%" innerRadius={56} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
-                  {bookingBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ ...tooltipStyle, padding: '8px 12px' }} formatter={(v: any) => [v, 'Booking']} />
-                <Legend verticalAlign="bottom" height={32} iconType="circle"
-                  formatter={v => <span style={{ fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{v}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {bookingBreakdown.every(d => d.value === 0) ? (
+              <div className="flex flex-col items-center gap-2 text-center py-8">
+                <span className="material-symbols-outlined text-4xl text-slate-200">donut_large</span>
+                <p className="text-xs font-bold text-slate-400">Chưa có booking trong kỳ này</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={bookingBreakdown} cx="50%" cy="46%" innerRadius={56} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                    {bookingBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ ...tooltipStyle, padding: '8px 12px' }} formatter={(v: any) => [v, 'Booking']} />
+                  <Legend verticalAlign="bottom" height={32} iconType="circle"
+                    formatter={v => <span style={{ fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{v}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
