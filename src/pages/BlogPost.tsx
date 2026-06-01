@@ -9,8 +9,8 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium' }).format(new Date(value));
 }
 
-function readMinutes(content: string) {
-  const words = content.trim().split(/\s+/).filter(Boolean).length;
+function readMinutes(content: string | null | undefined) {
+  const words = (content ?? '').trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 220));
 }
 
@@ -73,7 +73,7 @@ export default function BlogPost() {
               <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-on-surface mb-8 leading-[1.1]">{post.title}</h1>
               <div className="flex items-center justify-center gap-4">
                 <div className="w-12 h-12 rounded-full shadow-md bg-primary/10 text-primary flex items-center justify-center font-black">
-                  {post.authorName.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}
+                  {(post.authorName ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'}
                 </div>
                 <div className="text-left">
                   <div className="font-bold text-on-surface">{post.authorName}</div>

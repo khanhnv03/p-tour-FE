@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { createBooking, getBooking, type Booking } from '../api/bookings';
 import { applyPromoCode, findBestAutoApply, type ApplyDealResult } from '../api/deals';
@@ -72,6 +72,8 @@ export default function Checkout() {
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDeal, setAppliedDeal] = useState<AppliedDeal | null>(null);
+  const appliedDealRef = useRef(appliedDeal);
+  appliedDealRef.current = appliedDeal;
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -162,11 +164,12 @@ export default function Checkout() {
 
   useEffect(() => {
     if (booking || !tour || !selectedDeparture) return;
-    if (appliedDeal?.source === 'promo') {
+    if (appliedDealRef.current?.source === 'promo') {
       setAppliedDeal(null);
       setPromoMessage({ ok: false, text: 'Thông tin chuyến đi đã thay đổi. Hãy áp dụng lại mã ưu đãi nếu cần.' });
     }
-  }, [appliedDeal?.source, booking, pricingKey, selectedDeparture, tour]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking, pricingKey, selectedDeparture, tour]);
 
   useEffect(() => {
     let mounted = true;
