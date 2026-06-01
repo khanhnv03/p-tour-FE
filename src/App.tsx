@@ -36,6 +36,8 @@ import DealEditor from './pages/DealEditor';
 import CustomerDetails from './pages/CustomerDetails';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import UserProfilePage from './pages/UserProfile';
+import AdminSettings from './pages/AdminSettings';
 
 export default function App() {
   return (
@@ -68,6 +70,7 @@ export default function App() {
               <Route path="/account" element={<Navigate to="/my-bookings" replace />} />
               <Route path="/my-bookings" element={<MyBookings />} />
               <Route path="/my-bookings/:id" element={<BookingDetails />} />
+              <Route path="/my-profile" element={<UserProfilePage />} />
             </Route>
           </Route>
 
@@ -87,6 +90,7 @@ export default function App() {
               <Route path="deals" element={<ManageDeals />} />
               <Route path="deals/new" element={<DealEditor />} />
               <Route path="deals/edit/:id" element={<DealEditor />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Route>
 

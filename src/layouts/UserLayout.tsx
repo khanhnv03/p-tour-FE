@@ -3,7 +3,6 @@ import { Outlet, Link, NavLink, Navigate } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import NotificationBell from '../components/NotificationBell';
 
 const FALLBACK_AVATAR = 'https://picsum.photos/seed/user/200/200';
 
@@ -49,8 +48,6 @@ export default function UserLayout() {
 
           {/* User Section */}
           <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
-            <NotificationBell />
-
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -87,9 +84,9 @@ export default function UserLayout() {
                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
                         Chuyến đi của tôi
                       </Link>
-                      <Link onClick={() => setIsDropdownOpen(false)} to="/checkout" className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
-                        <span className="material-symbols-outlined text-lg">payments</span>
-                        Thanh toán
+                      <Link onClick={() => setIsDropdownOpen(false)} to="/my-profile" className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                        <span className="material-symbols-outlined text-lg">manage_accounts</span>
+                        Trang cá nhân
                       </Link>
                     </div>
 
@@ -124,7 +121,7 @@ export default function UserLayout() {
           <nav className="flex-1 space-y-2">
             {[
               { to: '/my-bookings', icon: 'travel_explore', label: 'Chuyến đi của tôi', fill: true },
-              { to: '/checkout', icon: 'payments', label: 'Thanh toán', fill: false },
+              { to: '/my-profile', icon: 'manage_accounts', label: 'Trang cá nhân', fill: false },
             ].map(({ to, icon, label, fill }) => (
               <NavLink
                 key={to}

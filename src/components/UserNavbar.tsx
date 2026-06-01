@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { BRAND_NAME, BRAND_LOGO } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
-import NotificationBell from './NotificationBell';
 
 const NAV_LINKS = [
   { label: 'Điểm đến', to: '/',        match: (p: string) => p === '/' },
@@ -96,9 +95,6 @@ export default function UserNavbar() {
         <div className="flex items-center space-x-4">
           {isAuthenticated ? (
             <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
-              {/* Notification bell */}
-              <NotificationBell />
-
               {/* Avatar + name + dropdown */}
               <div className="relative">
                 <button
@@ -148,6 +144,14 @@ export default function UserNavbar() {
                               <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
                               Bảng điều khiển
                             </Link>
+                            <Link
+                              onClick={() => setIsDropdownOpen(false)}
+                              to="/admin/settings?tab=profile"
+                              className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-lg">manage_accounts</span>
+                              Trang cá nhân
+                            </Link>
                           </>
                         ) : (
                           <>
@@ -158,6 +162,14 @@ export default function UserNavbar() {
                             >
                               <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>travel_explore</span>
                               Chuyến đi của tôi
+                            </Link>
+                            <Link
+                              onClick={() => setIsDropdownOpen(false)}
+                              to="/my-profile"
+                              className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-lg">manage_accounts</span>
+                              Trang cá nhân
                             </Link>
                           </>
                         )}
