@@ -251,11 +251,18 @@ export default function TourDetails() {
                           <div className={`absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-4 ring-white shadow-lg ${di === 0 ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}>
                             {day.dayNumber}
                           </div>
-                          <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
-                            <h4 className={`font-bold text-lg mb-2 ${di === 0 ? 'text-primary' : 'text-on-surface'}`}>
+                          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                            {day.coverImageUrl && (
+                              <img
+                                src={day.coverImageUrl}
+                                alt={day.title}
+                                className="w-full h-48 object-cover"
+                              />
+                            )}
+                            <div className="p-6">
+                            <h4 className={`font-bold text-lg mb-4 ${di === 0 ? 'text-primary' : 'text-on-surface'}`}>
                               Ngày {day.dayNumber}: {day.title}
                             </h4>
-                            <p className="text-on-surface-variant leading-relaxed mb-4">{day.summary}</p>
                             <div className="space-y-2">
                               {day.activities.map((act) => (
                                 <div key={act.id} className="flex items-start gap-2 text-sm text-on-surface-variant">
@@ -267,6 +274,7 @@ export default function TourDetails() {
                                   </div>
                                 </div>
                               ))}
+                            </div>
                             </div>
                           </div>
                         </div>
