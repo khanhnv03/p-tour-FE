@@ -41,6 +41,13 @@ export default function Sidebar() {
           <span>Ưu đãi</span>
         </Link>
         <Link
+          className={`flex items-center space-x-3 px-4 py-3 ml-2 font-semibold text-sm transition-all rounded-xl ${isActive('/admin/blogs') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:translate-x-1 hover:text-blue-600'}`}
+          to="/admin/blogs"
+        >
+          <span className="material-symbols-outlined">article</span>
+          <span>Blog</span>
+        </Link>
+        <Link
           className={`flex items-center space-x-3 px-4 py-3 ml-2 font-semibold text-sm transition-all rounded-xl ${isActive('/admin/customers') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:translate-x-1 hover:text-blue-600'}`}
           to="/admin/customers"
         >

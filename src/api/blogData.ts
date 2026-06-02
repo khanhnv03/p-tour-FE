@@ -11,8 +11,25 @@ export interface BlogPostSummary {
   authorName: string;
 }
 
+export interface BlogBlockImage {
+  id?: number;
+  imageUrl: string;
+  altText?: string;
+  sortOrder: number;
+}
+
+export interface BlogBlock {
+  id?: number;
+  blockType: 'PARAGRAPH' | 'HEADING' | 'QUOTE' | 'IMAGE' | 'GALLERY';
+  content?: string;
+  imageUrl?: string;
+  sortOrder: number;
+  images?: BlogBlockImage[];
+}
+
 export interface BlogPostDetail extends BlogPostSummary {
-  content: string;
+  content?: string;
+  blocks?: BlogBlock[];
 }
 
 export async function getBlogPosts(params?: {

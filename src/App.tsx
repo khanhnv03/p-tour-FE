@@ -38,6 +38,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import UserProfilePage from './pages/UserProfile';
 import AdminSettings from './pages/AdminSettings';
+import ManageBlogs from './pages/ManageBlogs';
+import BlogEditor from './pages/BlogEditor';
 
 export default function App() {
   return (
@@ -91,6 +93,9 @@ export default function App() {
               <Route path="deals/new" element={<DealEditor />} />
               <Route path="deals/edit/:id" element={<DealEditor />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="blogs" element={<ManageBlogs />} />
+              <Route path="blogs/new" element={<BlogEditor />} />
+              <Route path="blogs/edit/:id" element={<BlogEditor />} />
             </Route>
           </Route>
 

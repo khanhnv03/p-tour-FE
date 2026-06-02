@@ -382,6 +382,89 @@ export async function deleteAdminDeparture(tourId: number, departureId: number):
   await apiClient.delete(`/admin/tours/${tourId}/departures/${departureId}`);
 }
 
+// ── Blog Admin ────────────────────────────────────────────────────────────
+
+export type BlogPostStatus = 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
+export type BlockType = 'PARAGRAPH' | 'HEADING' | 'QUOTE' | 'IMAGE' | 'GALLERY';
+
+export interface BlockImage {
+  id?: number;
+  imageUrl: string;
+  altText?: string;
+  sortOrder: number;
+}
+
+export interface Block {
+  id?: number;
+  blockType: BlockType;
+  content?: string;
+  imageUrl?: string;
+  sortOrder: number;
+  images?: BlockImage[];
+}
+
+export interface AdminBlogPost {
+  id: number;
+  slug: string;
+  title: string;
+  coverImageUrl?: string;
+  excerpt?: string;
+  publishedAt?: string;
+  authorName?: string;
+  status: BlogPostStatus;
+}
+
+export interface AdminBlogPostDetail extends AdminBlogPost {
+  content?: string;
+  scheduledAt?: string;
+  blocks?: Block[];
+}
+
+export interface SaveBlogPostRequest {
+  title: string;
+  slug?: string;
+  coverImageUrl?: string;
+  excerpt?: string;
+  status: BlogPostStatus;
+  scheduledAt?: string;
+  blocks: {
+    blockType: BlockType;
+    content?: string;
+    imageUrl?: string;
+    sortOrder: number;
+    images?: { imageUrl: string; altText?: string; sortOrder: number }[];
+  }[];
+}
+
+export async function listAdminBlogPosts(params: {
+  keyword?: string;
+  status?: BlogPostStatus;
+  page?: number;
+  size?: number;
+} = {}): Promise<PageResponse<AdminBlogPost>> {
+  const { data } = await apiClient.get('/admin/blog/posts', { params });
+  return unwrapApiResponse(data);
+}
+
+export async function getAdminBlogPost(id: number): Promise<AdminBlogPostDetail> {
+  const { data } = await apiClient.get(`/admin/blog/posts/${id}`);
+  return unwrapApiResponse(data);
+}
+
+export async function createAdminBlogPost(payload: SaveBlogPostRequest): Promise<AdminBlogPostDetail> {
+  const { data } = await apiClient.post('/admin/blog/posts', payload);
+  return unwrapApiResponse(data);
+}
+
+export async function updateAdminBlogPost(id: number, payload: SaveBlogPostRequest): Promise<AdminBlogPostDetail> {
+  const { data } = await apiClient.put(`/admin/blog/posts/${id}`, payload);
+  return unwrapApiResponse(data);
+}
+
+export async function deleteAdminBlogPost(id: number): Promise<void> {
+  await apiClient.delete(`/admin/blog/posts/${id}`);
+}
+
 export async function uploadMedia(file: File, alt?: string): Promise<MediaAsset> {
   const form = new FormData();
   form.append('file', file);
