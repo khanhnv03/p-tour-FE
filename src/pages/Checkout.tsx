@@ -246,12 +246,12 @@ export default function Checkout() {
     setError(null);
 
     try {
-      let activeBooking = booking;
-      if (!activeBooking) {
+      // Bước 1: Chưa có booking — tạo booking rồi chuyển sang trang chi tiết để user hủy hoặc thanh toán
+      if (!booking) {
         if (!tour || !selectedDeparture) {
           throw new Error('Thiếu thông tin tour hoặc lịch khởi hành.');
         }
-        activeBooking = await createBooking({
+        const newBooking = await createBooking({
           tourId: tour.id,
           departureId: selectedDeparture.id,
           guestCount,
@@ -262,13 +262,15 @@ export default function Checkout() {
           promoCode: appliedDeal?.source === 'promo' ? appliedDeal.promoCode ?? promoCode.trim() : undefined,
           dealId: appliedDeal?.source === 'auto' ? appliedDeal.dealId : undefined,
         });
-        setBooking(activeBooking);
+        navigate(`/my-bookings/${newBooking.id}`, { replace: true });
+        return;
       }
 
+      // Bước 2: Đã có booking — tạo order và thực hiện thanh toán
       let activeOrder = order;
       if (!activeOrder) {
         activeOrder = await createOrder({
-          bookingId: activeBooking.id,
+          bookingId: booking.id,
           paymentMethod,
           cardLastFour: paymentMethod === 'CREDIT_CARD' ? cardLastFour : undefined,
         });
@@ -288,7 +290,7 @@ export default function Checkout() {
         }
       }
 
-      navigate(`/success?bookingId=${activeBooking.id}&orderId=${finalOrder.id}&payment=${paymentState}`, {
+      navigate(`/success?bookingId=${booking.id}&orderId=${finalOrder.id}&payment=${paymentState}`, {
         replace: true,
       });
     } catch (submitError: unknown) {
@@ -343,7 +345,7 @@ export default function Checkout() {
               <p className="text-sm text-on-surface-variant mt-2 max-w-2xl">
                 {booking
                   ? 'Booking đã được tạo. Hoàn tất thanh toán để xác nhận chỗ và khóa lịch khởi hành.'
-                  : 'Xác nhận thông tin liên hệ, ưu đãi và phương thức thanh toán trước khi tạo booking.'}
+                  : 'Xác nhận thông tin liên hệ và ưu đãi. Booking sẽ được tạo ở trạng thái chờ thanh toán.'}
               </p>
             </div>
             {booking && (
@@ -514,64 +516,66 @@ export default function Checkout() {
               </section>
             )}
 
-            <section className="bg-surface-container-lowest rounded-3xl border border-surface-container-low/60 p-6 lg:p-8 space-y-5">
-              <div>
-                <h2 className="text-xl font-black tracking-tight">Phương thức thanh toán</h2>
-                <p className="text-sm text-on-surface-variant mt-1">
-                  {order
-                    ? 'Đơn hàng đã được tạo. Bạn đang tiếp tục thanh toán theo phương thức đã chọn trước đó.'
-                    : 'Chọn phương thức thanh toán để hoàn tất đặt tour và xác nhận booking.'}
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {PAYMENT_OPTIONS.map((option) => {
-                  const active = paymentMethod === option.value;
-                  const disabled = !!order;
-                  return (
-                    <label
-                      key={option.value}
-                      className={`rounded-2xl border px-5 py-4 transition-all ${active ? 'border-primary bg-primary/5' : 'border-surface-container-high bg-surface'} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-primary/40'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment-method"
-                        className="sr-only"
-                        checked={active}
-                        onChange={() => setPaymentMethod(option.value)}
-                        disabled={disabled}
-                      />
-                      <div className="flex items-start gap-3">
-                        <span className="material-symbols-outlined text-primary mt-0.5">{option.icon}</span>
-                        <div>
-                          <p className="font-bold text-sm">{option.title}</p>
-                          <p className="text-xs text-on-surface-variant mt-1">{option.description}</p>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-
-              {paymentMethod === 'CREDIT_CARD' && !order && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <Field label="Số thẻ">
-                    <input
-                      className={INPUT_CLASS}
-                      inputMode="numeric"
-                      value={cardNumber}
-                      onChange={(event) => setCardNumber(event.target.value)}
-                      placeholder="0000 0000 0000 0000"
-                      required
-                    />
-                  </Field>
-                  <Field label="4 số cuối sẽ được lưu">
-                    <div className={`${INPUT_STATIC_CLASS} font-semibold text-on-surface-variant`}>
-                      {cardLastFour || 'Chưa có thông tin thẻ'}
-                    </div>
-                  </Field>
+            {booking && (
+              <section className="bg-surface-container-lowest rounded-3xl border border-surface-container-low/60 p-6 lg:p-8 space-y-5">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">Phương thức thanh toán</h2>
+                  <p className="text-sm text-on-surface-variant mt-1">
+                    {order
+                      ? 'Đơn hàng đã được tạo. Bạn đang tiếp tục thanh toán theo phương thức đã chọn trước đó.'
+                      : 'Chọn phương thức thanh toán để hoàn tất và xác nhận booking.'}
+                  </p>
                 </div>
-              )}
-            </section>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {PAYMENT_OPTIONS.map((option) => {
+                    const active = paymentMethod === option.value;
+                    const disabled = !!order;
+                    return (
+                      <label
+                        key={option.value}
+                        className={`rounded-2xl border px-5 py-4 transition-all ${active ? 'border-primary bg-primary/5' : 'border-surface-container-high bg-surface'} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-primary/40'}`}
+                      >
+                        <input
+                          type="radio"
+                          name="payment-method"
+                          className="sr-only"
+                          checked={active}
+                          onChange={() => setPaymentMethod(option.value)}
+                          disabled={disabled}
+                        />
+                        <div className="flex items-start gap-3">
+                          <span className="material-symbols-outlined text-primary mt-0.5">{option.icon}</span>
+                          <div>
+                            <p className="font-bold text-sm">{option.title}</p>
+                            <p className="text-xs text-on-surface-variant mt-1">{option.description}</p>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {paymentMethod === 'CREDIT_CARD' && !order && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Số thẻ">
+                      <input
+                        className={INPUT_CLASS}
+                        inputMode="numeric"
+                        value={cardNumber}
+                        onChange={(event) => setCardNumber(event.target.value)}
+                        placeholder="0000 0000 0000 0000"
+                        required
+                      />
+                    </Field>
+                    <Field label="4 số cuối sẽ được lưu">
+                      <div className={`${INPUT_STATIC_CLASS} font-semibold text-on-surface-variant`}>
+                        {cardLastFour || 'Chưa có thông tin thẻ'}
+                      </div>
+                    </Field>
+                  </div>
+                )}
+              </section>
+            )}
 
             {error && (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-600">
@@ -581,14 +585,16 @@ export default function Checkout() {
 
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
               <p className="text-sm text-on-surface-variant">
-                Sau khi thanh toán thành công, booking sẽ được chuyển sang trạng thái <strong>CONFIRMED</strong>.
+                {booking
+                  ? <>Sau khi thanh toán thành công, booking sẽ được chuyển sang trạng thái <strong>CONFIRMED</strong>.</>
+                  : 'Booking sẽ được tạo ở trạng thái chờ thanh toán. Bạn có thể hủy hoặc hoàn tất thanh toán trong trang quản lý booking.'}
               </p>
               <button
                 type="submit"
                 disabled={submitting || orderIsSettled || bookingIsSettled}
                 className="primary-gradient text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Đang xử lý...' : booking ? 'Thanh toán và xác nhận' : 'Tạo booking và thanh toán'}
+                {submitting ? 'Đang xử lý...' : booking ? 'Xác nhận thanh toán' : 'Tạo booking'}
               </button>
             </div>
           </form>
